@@ -192,7 +192,7 @@ const StockTable: React.FC<StockTableProps> = ({ items }) => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <button onClick={() => handleSort('quantidade')} className="flex items-center hover:text-gray-700">
-                    Quantidade
+                    Total Físico
                     <SortIcon field="quantidade" />
                   </button>
                 </th>

@@ -28,19 +28,26 @@ export const processExcelFile = async (file: File): Promise<ProcessedItem[]> => 
 const parseExcelData = (data: any[][]): StockItem[] => {
   if (data.length < 2) return [];
 
-  const headers = data[0].map((h: string) => h?.toString().toLowerCase().trim());
+  const headers = data[0].map((h: string) => h?.toString().toLowerCase().trim().replace(/\s+/g, ' '));
+
+  // Procurar por "Cod Material" (com espaço)
   const codMaterialIndex = headers.findIndex((h: string) =>
-    h.includes('cod') && h.includes('material')
+    h === 'cod material' || h.includes('cod material')
   );
+
+  // Procurar por "Desc Material" (com espaço)
   const descMaterialIndex = headers.findIndex((h: string) =>
-    h.includes('desc') && h.includes('material')
+    h === 'desc material' || h.includes('desc material')
   );
+
+  // Procurar por "Total fisico Total" ou variações
   const quantidadeIndex = headers.findIndex((h: string) =>
-    h.includes('quantidade') || h === 'qtd'
+    h.includes('total fisico') || h === 'total fisico total' || h.includes('quantidade')
   );
 
   if (codMaterialIndex === -1 || descMaterialIndex === -1 || quantidadeIndex === -1) {
-    throw new Error('Colunas obrigatórias não encontradas: CodMaterial, DescMaterial, Quantidade');
+    console.log('Headers encontrados:', headers);
+    throw new Error('Colunas obrigatórias não encontradas: "Cod Material", "Desc Material", "Total fisico Total"');
   }
 
   const items: StockItem[] = [];
