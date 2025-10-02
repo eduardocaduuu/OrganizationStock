@@ -11,6 +11,7 @@ function App() {
   const [items, setItems] = useState<ProcessedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'zerado' | 'negativo' | 'duplicado'>('all');
 
   const calculateMetrics = (items: ProcessedItem[]): DashboardMetrics => {
     const uniqueGroups = new Set<string>();
@@ -88,7 +89,14 @@ function App() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 Métricas do Estoque
               </h2>
-              <Dashboard metrics={metrics} />
+              <p className="text-sm text-gray-600 mb-4">
+                Clique nos cards abaixo para filtrar os itens
+              </p>
+              <Dashboard
+                metrics={metrics}
+                onCardClick={setActiveFilter}
+                activeFilter={activeFilter}
+              />
             </section>
 
             {(metrics.itemsZerados > 0 || metrics.itemsNegativos > 0) && (
@@ -112,8 +120,15 @@ function App() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 Análise Detalhada
+                {activeFilter !== 'all' && (
+                  <span className="ml-2 text-base font-normal text-gray-600">
+                    (Filtro: {activeFilter === 'zerado' ? 'Estoque Zerado' :
+                             activeFilter === 'negativo' ? 'Estoque Negativo' :
+                             'Duplicados/Variantes'})
+                  </span>
+                )}
               </h2>
-              <StockTable items={items} />
+              <StockTable items={items} externalFilter={activeFilter} />
             </section>
           </>
         )}

@@ -45,9 +45,26 @@ const parseExcelData = (data: any[][]): StockItem[] => {
     h.includes('total físico') || h.includes('total fisico') || h === 'total físico' || h.includes('quantidade')
   );
 
+  // Procurar colunas adicionais
+  const estacaoIndex = headers.findIndex((h: string) =>
+    h === 'estacao' || h.includes('estacao') || h === 'estação'
+  );
+
+  const rackIndex = headers.findIndex((h: string) =>
+    h === 'rack' || h.includes('rack')
+  );
+
+  const linhaProdAlocadoIndex = headers.findIndex((h: string) =>
+    h.includes('linha prod alocado') || h.includes('linha')
+  );
+
+  const colunaProdAlocadoIndex = headers.findIndex((h: string) =>
+    h.includes('coluna prod alocado') || h.includes('coluna')
+  );
+
   if (codMaterialIndex === -1 || descMaterialIndex === -1 || quantidadeIndex === -1) {
     console.log('Headers encontrados:', headers);
-    throw new Error('Colunas obrigatórias não encontradas: "Cod Material", "Desc Material", "Total fisico Total"');
+    throw new Error('Colunas obrigatórias não encontradas: "Cod Material", "Desc Material", "Total físico"');
   }
 
   const items: StockItem[] = [];
@@ -64,7 +81,11 @@ const parseExcelData = (data: any[][]): StockItem[] => {
       items.push({
         codMaterial,
         descMaterial,
-        quantidade
+        quantidade,
+        estacao: estacaoIndex !== -1 ? (row[estacaoIndex]?.toString().trim() || '-') : '-',
+        rack: rackIndex !== -1 ? (row[rackIndex]?.toString().trim() || '-') : '-',
+        linhaProdAlocado: linhaProdAlocadoIndex !== -1 ? (row[linhaProdAlocadoIndex]?.toString().trim() || '-') : '-',
+        colunaProdAlocado: colunaProdAlocadoIndex !== -1 ? (row[colunaProdAlocadoIndex]?.toString().trim() || '-') : '-'
       });
     }
   }
@@ -205,8 +226,12 @@ export const exportToExcel = (items: ProcessedItem[], filename: string = 'relato
   const exportData = items.map(item => ({
     'Código': item.codMaterial,
     'Descrição': item.descMaterial,
-    'Quantidade': item.quantidade,
-    'Quantidade Total (com variantes)': item.totalQuantity,
+    'Estação': item.estacao,
+    'Rack': item.rack,
+    'Linha Prod Alocado': item.linhaProdAlocado,
+    'Coluna Prod Alocado': item.colunaProdAlocado,
+    'Total Físico': item.quantidade,
+    'Total (com variantes)': item.totalQuantity,
     'Status': item.status.join(', '),
     'Variantes': item.variants ? item.variants.join(', ') : '-'
   }));

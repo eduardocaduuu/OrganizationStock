@@ -2,6 +2,10 @@ export interface StockItem {
   codMaterial: string;
   descMaterial: string;
   quantidade: number;
+  estacao: string;
+  rack: string;
+  linhaProdAlocado: string;
+  colunaProdAlocado: string;
 }
 
 export interface ProcessedItem extends StockItem {

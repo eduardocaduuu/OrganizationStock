@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ProcessedItem, ItemStatus } from '../types';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
@@ -8,20 +8,29 @@ import { exportToExcel } from '../utils/excelProcessor';
 
 interface StockTableProps {
   items: ProcessedItem[];
+  externalFilter?: FilterStatus;
 }
 
-type SortField = 'codMaterial' | 'descMaterial' | 'quantidade' | 'totalQuantity';
+type SortField = 'codMaterial' | 'descMaterial' | 'quantidade' | 'totalQuantity' | 'estacao' | 'rack';
 type SortOrder = 'asc' | 'desc';
 type FilterStatus = 'all' | ItemStatus;
 
-const StockTable: React.FC<StockTableProps> = ({ items }) => {
+const StockTable: React.FC<StockTableProps> = ({ items, externalFilter }) => {
   const [sortField, setSortField] = useState<SortField>('codMaterial');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>(externalFilter || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const itemsPerPage = 20;
+
+  // Sincronizar filtro externo
+  useEffect(() => {
+    if (externalFilter) {
+      setFilterStatus(externalFilter);
+      setCurrentPage(1);
+    }
+  }, [externalFilter]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -191,6 +200,24 @@ const StockTable: React.FC<StockTableProps> = ({ items }) => {
                   </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button onClick={() => handleSort('estacao')} className="flex items-center hover:text-gray-700">
+                    Estação
+                    <SortIcon field="estacao" />
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button onClick={() => handleSort('rack')} className="flex items-center hover:text-gray-700">
+                    Rack
+                    <SortIcon field="rack" />
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Linha Prod
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Coluna Prod
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <button onClick={() => handleSort('quantidade')} className="flex items-center hover:text-gray-700">
                     Total Físico
                     <SortIcon field="quantidade" />
@@ -219,6 +246,18 @@ const StockTable: React.FC<StockTableProps> = ({ items }) => {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {item.descMaterial}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {item.estacao}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {item.rack}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {item.linhaProdAlocado}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {item.colunaProdAlocado}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span className={cn(
@@ -269,7 +308,7 @@ const StockTable: React.FC<StockTableProps> = ({ items }) => {
                   </tr>
                   {expandedRows.has(item.id) && item.variants && (
                     <tr className={getRowColor(item)}>
-                      <td colSpan={6} className="px-6 py-4">
+                      <td colSpan={10} className="px-6 py-4">
                         <div className="bg-white rounded-lg p-4 border border-gray-200">
                           <h4 className="text-sm font-semibold text-gray-700 mb-2">
                             Códigos das Variantes:
