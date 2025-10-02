@@ -171,6 +171,10 @@ const analyzeItems = (items: StockItem[]): ProcessedItem[] => {
         codMaterial: item.codMaterial,
         descMaterial: item.descMaterial,
         quantidade: item.quantidade,
+        estacao: item.estacao,
+        rack: item.rack,
+        linhaProdAlocado: item.linhaProdAlocado,
+        colunaProdAlocado: item.colunaProdAlocado,
         status,
         variants: descGroup.map(i => i.codMaterial),
         totalQuantity: 0, // Will be calculated below
@@ -185,6 +189,10 @@ const analyzeItems = (items: StockItem[]): ProcessedItem[] => {
         codMaterial: item.codMaterial,
         descMaterial: item.descMaterial,
         quantidade: item.quantidade,
+        estacao: item.estacao,
+        rack: item.rack,
+        linhaProdAlocado: item.linhaProdAlocado,
+        colunaProdAlocado: item.colunaProdAlocado,
         status,
         totalQuantity: item.quantidade
       };
