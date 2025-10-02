@@ -131,7 +131,7 @@ const analyzeItems = (items: StockItem[]): ProcessedItem[] => {
   const variantGroups = new Map<string, VariantGroup>();
 
   items.forEach(item => {
-    const { base, variant } = extractVariantPattern(item.descMaterial);
+    const { base } = extractVariantPattern(item.descMaterial);
     const status: ItemStatus[] = [];
 
     // Verificar status de quantidade
