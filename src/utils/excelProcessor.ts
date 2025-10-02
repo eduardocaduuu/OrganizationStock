@@ -40,9 +40,9 @@ const parseExcelData = (data: any[][]): StockItem[] => {
     h === 'desc material' || h.includes('desc material')
   );
 
-  // Procurar por "Total fisico Total" ou variações
+  // Procurar por "total físico" (com acento)
   const quantidadeIndex = headers.findIndex((h: string) =>
-    h.includes('total fisico') || h === 'total fisico total' || h.includes('quantidade')
+    h.includes('total físico') || h.includes('total fisico') || h === 'total físico' || h.includes('quantidade')
   );
 
   if (codMaterialIndex === -1 || descMaterialIndex === -1 || quantidadeIndex === -1) {

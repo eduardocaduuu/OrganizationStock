@@ -110,9 +110,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, loading = false }
                   ou clique para selecionar
                 </p>
               </div>
-              <Button variant="outline" size="default" type="button">
+              <div className="inline-flex items-center justify-center rounded-md font-medium border transition-colors px-4 py-2 text-sm bg-transparent border-gray-300 text-gray-700 hover:bg-gray-50">
                 Selecionar Arquivo
-              </Button>
+              </div>
               <p className="text-xs text-gray-400 mt-2">
                 Formatos suportados: .xlsx, .xls
               </p>
