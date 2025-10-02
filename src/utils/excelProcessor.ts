@@ -149,7 +149,8 @@ const analyzeItems = (items: StockItem[]): ProcessedItem[] => {
 
     // Verificar variantes
     const descGroup = descriptionGroups.get(base) || [];
-    const hasVariants = descGroup.length > 1 || variant !== null;
+    // Um item só é variante se existem múltiplos itens com a mesma descrição base
+    const hasVariants = descGroup.length > 1;
 
     if (hasVariants) {
       status.push('variante');
