@@ -177,7 +177,7 @@ const analyzeItems = (items: StockItem[]): ProcessedItem[] => {
         linhaProdAlocado: item.linhaProdAlocado,
         colunaProdAlocado: item.colunaProdAlocado,
         status,
-        variants: descGroup.map(i => i.codMaterial),
+        variants: descGroup.map(i => i.codMaterial).filter(code => code !== item.codMaterial),
         totalQuantity: 0, // Will be calculated below
         groupId
       };

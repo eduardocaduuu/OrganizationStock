@@ -285,7 +285,7 @@ const StockTable: React.FC<StockTableProps> = ({ items, externalFilter }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {item.variants && item.variants.length > 1 && (
+                      {item.variants && item.variants.length > 0 && (
                         <Button
                           variant="ghost"
                           size="sm"
