@@ -55,11 +55,11 @@ const parseExcelData = (data: any[][]): StockItem[] => {
   );
 
   const linhaProdAlocadoIndex = headers.findIndex((h: string) =>
-    h.includes('linha prod alocado') || h.includes('linha')
+    h === 'linha prod alocado' || h.includes('linha prod alocado') || h === 'linha prod' || h.includes('linha prod')
   );
 
   const colunaProdAlocadoIndex = headers.findIndex((h: string) =>
-    h.includes('coluna prod alocado') || h.includes('coluna')
+    h === 'coluna prod alocado' || h.includes('coluna prod alocado') || h === 'coluna prod' || h.includes('coluna prod')
   );
 
   if (codMaterialIndex === -1 || descMaterialIndex === -1 || quantidadeIndex === -1) {
