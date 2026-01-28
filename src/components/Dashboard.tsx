@@ -1,17 +1,25 @@
 import React from 'react';
 import { Card, CardContent } from './ui/Card';
-import { AlertTriangle, MinusCircle, Package, Copy } from 'lucide-react';
+import { AlertTriangle, MinusCircle, Package, Copy, MapPinOff } from 'lucide-react';
 import { DashboardMetrics } from '../types';
 import { cn } from '../utils/cn';
 
 interface DashboardProps {
   metrics: DashboardMetrics;
-  onCardClick?: (filter: 'all' | 'zerado' | 'negativo' | 'duplicado') => void;
+  onCardClick?: (filter: 'all' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco') => void;
   activeFilter?: string;
+  showAddressMetrics?: boolean;
+  onViewMissingAddress?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ metrics, onCardClick, activeFilter = 'all' }) => {
-  const cards = [
+const Dashboard: React.FC<DashboardProps> = ({
+  metrics,
+  onCardClick,
+  activeFilter = 'all',
+  showAddressMetrics = false,
+  onViewMissingAddress
+}) => {
+  const baseCards = [
     {
       title: 'Total de Itens Únicos',
       value: metrics.totalItems,
@@ -48,14 +56,34 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, onCardClick, activeFilte
     },
   ];
 
+  const cards = showAddressMetrics
+    ? [
+        ...baseCards,
+        {
+          title: 'Itens sem Endereço',
+          value: metrics.itensSemEndereco,
+          icon: MapPinOff,
+          color: 'text-yellow-600',
+          bgColor: 'bg-yellow-100',
+          alert: metrics.itensSemEndereco > 0,
+          filter: 'sem-endereco' as const,
+          percentage: metrics.percentualSemEndereco,
+          showViewButton: true,
+        },
+      ]
+    : baseCards;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className={cn(
+      "grid grid-cols-1 md:grid-cols-2 gap-4",
+      showAddressMetrics ? "lg:grid-cols-5" : "lg:grid-cols-4"
+    )}>
       {cards.map((card, index) => (
         <Card
           key={index}
           className={cn(
             'transition-all cursor-pointer hover:shadow-lg',
-            card.alert && 'border-l-4 border-l-red-500',
+            card.alert && card.filter === 'sem-endereco' ? 'border-l-4 border-l-yellow-500' : card.alert && 'border-l-4 border-l-red-500',
             activeFilter === card.filter && 'ring-2 ring-primary-500 shadow-lg'
           )}
           onClick={() => onCardClick?.(card.filter)}
@@ -66,19 +94,37 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, onCardClick, activeFilte
                 <p className="text-sm font-medium text-gray-600 mb-1">
                   {card.title}
                 </p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {card.value.toLocaleString()}
-                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-bold text-gray-900">
+                    {card.value.toLocaleString()}
+                  </p>
+                  {'percentage' in card && card.percentage !== undefined && (
+                    <span className="text-lg font-semibold text-yellow-600">
+                      ({card.percentage}%)
+                    </span>
+                  )}
+                </div>
               </div>
               <div className={`${card.bgColor} p-3 rounded-lg`}>
                 <card.icon className={`h-8 w-8 ${card.color}`} />
               </div>
             </div>
-            {card.alert && (
+            {card.alert && card.filter !== 'sem-endereco' && (
               <div className="mt-3 flex items-center gap-1 text-red-600">
                 <AlertTriangle className="h-4 w-4" />
                 <span className="text-xs font-medium">Atenção necessária</span>
               </div>
+            )}
+            {'showViewButton' in card && card.showViewButton && card.value > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewMissingAddress?.();
+                }}
+                className="mt-3 w-full text-sm font-medium text-yellow-700 bg-yellow-100 hover:bg-yellow-200 rounded-md py-2 px-3 transition-colors"
+              >
+                Ver itens sem endereço
+              </button>
             )}
             {activeFilter === card.filter && (
               <div className="mt-3 flex items-center gap-1 text-primary-600">

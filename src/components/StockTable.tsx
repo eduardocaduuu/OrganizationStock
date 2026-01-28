@@ -14,7 +14,15 @@ interface StockTableProps {
 
 type SortField = 'codMaterial' | 'descMaterial' | 'quantidade' | 'totalQuantity' | 'estacao' | 'rack';
 type SortOrder = 'asc' | 'desc';
-type FilterStatus = 'all' | ItemStatus;
+type FilterStatus = 'all' | ItemStatus | 'sem-endereco';
+
+const isAddressEmpty = (item: ProcessedItem): boolean => {
+  const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
+  const rackVazio = !item.rack || item.rack === '-' || item.rack.trim() === '';
+  const linhaVazia = !item.linhaProdAlocado || item.linhaProdAlocado === '-' || item.linhaProdAlocado.trim() === '';
+  const colunaVazia = !item.colunaProdAlocado || item.colunaProdAlocado === '-' || item.colunaProdAlocado.trim() === '';
+  return estacaoVazia && rackVazio && linhaVazia && colunaVazia;
+};
 
 const StockTable: React.FC<StockTableProps> = ({ items, externalFilter, template = 'legacy' }) => {
   const [sortField, setSortField] = useState<SortField>('codMaterial');
@@ -60,7 +68,11 @@ const StockTable: React.FC<StockTableProps> = ({ items, externalFilter, template
 
     // Filtrar por status
     if (filterStatus !== 'all') {
-      result = result.filter(item => item.status.includes(filterStatus));
+      if (filterStatus === 'sem-endereco') {
+        result = result.filter(item => isAddressEmpty(item));
+      } else {
+        result = result.filter(item => item.status.includes(filterStatus));
+      }
     }
 
     // Filtrar por busca
@@ -170,6 +182,7 @@ const StockTable: React.FC<StockTableProps> = ({ items, externalFilter, template
               <option value="negativo">Negativo</option>
               <option value="duplicado">Duplicado</option>
               <option value="variante">Variante</option>
+              {template === 'legacy' && <option value="sem-endereco">Sem Endereço</option>}
             </select>
           </div>
 

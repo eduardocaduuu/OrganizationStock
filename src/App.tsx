@@ -3,6 +3,7 @@ import Header from './components/Header';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import StockTable from './components/StockTable';
+import MissingAddressModal from './components/MissingAddressModal';
 import Alert from './components/ui/Alert';
 import { ProcessedItem, DashboardMetrics, ExcelTemplate } from './types';
 import { processExcelFile } from './utils/excelProcessor';
@@ -11,17 +12,28 @@ function App() {
   const [items, setItems] = useState<ProcessedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'zerado' | 'negativo' | 'duplicado'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco'>('all');
   const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel'>('legacy');
+  const [showMissingAddressModal, setShowMissingAddressModal] = useState(false);
+
+  const isAddressEmpty = (item: ProcessedItem): boolean => {
+    const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
+    const rackVazio = !item.rack || item.rack === '-' || item.rack.trim() === '';
+    const linhaVazia = !item.linhaProdAlocado || item.linhaProdAlocado === '-' || item.linhaProdAlocado.trim() === '';
+    const colunaVazia = !item.colunaProdAlocado || item.colunaProdAlocado === '-' || item.colunaProdAlocado.trim() === '';
+    return estacaoVazia && rackVazio && linhaVazia && colunaVazia;
+  };
 
   const calculateMetrics = (items: ProcessedItem[]): DashboardMetrics => {
     const uniqueGroups = new Set<string>();
     let itemsZerados = 0;
     let itemsNegativos = 0;
+    let itensSemEndereco = 0;
 
     items.forEach(item => {
       if (item.quantidade === 0) itemsZerados++;
       if (item.quantidade < 0) itemsNegativos++;
+      if (isAddressEmpty(item)) itensSemEndereco++;
 
       if (item.status.includes('duplicado') || item.status.includes('variante')) {
         if (item.groupId) {
@@ -32,11 +44,17 @@ function App() {
       }
     });
 
+    const percentualSemEndereco = items.length > 0
+      ? Math.round((itensSemEndereco / items.length) * 100)
+      : 0;
+
     return {
       totalItems: items.length,
       itemsZerados,
       itemsNegativos,
       gruposDuplicados: uniqueGroups.size,
+      itensSemEndereco,
+      percentualSemEndereco,
     };
   };
 
@@ -65,7 +83,11 @@ function App() {
     itemsZerados: 0,
     itemsNegativos: 0,
     gruposDuplicados: 0,
+    itensSemEndereco: 0,
+    percentualSemEndereco: 0,
   };
+
+  const itemsSemEndereco = items.filter(isAddressEmpty);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -98,6 +120,8 @@ function App() {
                 metrics={metrics}
                 onCardClick={setActiveFilter}
                 activeFilter={activeFilter}
+                showAddressMetrics={detectedTemplate === 'legacy'}
+                onViewMissingAddress={() => setShowMissingAddressModal(true)}
               />
             </section>
 
@@ -126,6 +150,7 @@ function App() {
                   <span className="ml-2 text-base font-normal text-gray-600">
                     (Filtro: {activeFilter === 'zerado' ? 'Estoque Zerado' :
                              activeFilter === 'negativo' ? 'Estoque Negativo' :
+                             activeFilter === 'sem-endereco' ? 'Itens sem Endereço' :
                              'Duplicados/Variantes'})
                   </span>
                 )}
@@ -170,6 +195,14 @@ function App() {
           </p>
         </div>
       </footer>
+
+      {/* Modal de itens sem endereço */}
+      <MissingAddressModal
+        isOpen={showMissingAddressModal}
+        onClose={() => setShowMissingAddressModal(false)}
+        items={itemsSemEndereco}
+        percentage={metrics.percentualSemEndereco}
+      />
     </div>
   );
 }

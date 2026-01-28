@@ -25,6 +25,8 @@ export interface DashboardMetrics {
   itemsZerados: number;
   itemsNegativos: number;
   gruposDuplicados: number;
+  itensSemEndereco: number;
+  percentualSemEndereco: number;
 }
 
 export interface VariantGroup {
