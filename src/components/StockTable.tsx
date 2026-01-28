@@ -21,8 +21,8 @@ const isAddressEmptyWithStock = (item: ProcessedItem): boolean => {
   const rackVazio = !item.rack || item.rack === '-' || item.rack.trim() === '';
   const linhaVazia = !item.linhaProdAlocado || item.linhaProdAlocado === '-' || item.linhaProdAlocado.trim() === '';
   const colunaVazia = !item.colunaProdAlocado || item.colunaProdAlocado === '-' || item.colunaProdAlocado.trim() === '';
-  // Só conta como "sem endereço" se tiver estoque > 0
-  return estacaoVazia && rackVazio && linhaVazia && colunaVazia && item.quantidade > 0;
+  // Só conta como "sem endereço" se estoque não for zerado (exclui apenas quantidade = 0)
+  return estacaoVazia && rackVazio && linhaVazia && colunaVazia && item.quantidade !== 0;
 };
 
 const StockTable: React.FC<StockTableProps> = ({ items, externalFilter, template = 'legacy' }) => {
