@@ -24,9 +24,9 @@ function App() {
     return estacaoVazia && rackVazio && linhaVazia && colunaVazia;
   };
 
-  // Itens sem endereço com estoque positivo (exclui zerados e negativos)
+  // Itens sem endereço com estoque >= 0 (exclui apenas negativos)
   const isAddressEmptyWithStock = (item: ProcessedItem): boolean => {
-    return hasNoAddress(item) && item.quantidade > 0;
+    return hasNoAddress(item) && item.quantidade >= 0;
   };
 
   const calculateMetrics = (items: ProcessedItem[]): DashboardMetrics => {
