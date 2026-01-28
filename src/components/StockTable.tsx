@@ -14,7 +14,7 @@ interface StockTableProps {
 
 type SortField = 'codMaterial' | 'descMaterial' | 'quantidade' | 'totalQuantity' | 'estacao' | 'rack';
 type SortOrder = 'asc' | 'desc';
-type FilterStatus = 'all' | ItemStatus | 'sem-endereco';
+type FilterStatus = 'all' | 'positivo' | ItemStatus | 'sem-endereco';
 
 const isAddressEmptyWithStock = (item: ProcessedItem): boolean => {
   const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
@@ -71,6 +71,8 @@ const StockTable: React.FC<StockTableProps> = ({ items, externalFilter, template
     if (filterStatus !== 'all') {
       if (filterStatus === 'sem-endereco') {
         result = result.filter(item => isAddressEmptyWithStock(item));
+      } else if (filterStatus === 'positivo') {
+        result = result.filter(item => item.quantidade > 0);
       } else {
         result = result.filter(item => item.status.includes(filterStatus));
       }
@@ -179,6 +181,7 @@ const StockTable: React.FC<StockTableProps> = ({ items, externalFilter, template
               className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="all">Todos</option>
+              <option value="positivo">Positivo</option>
               <option value="zerado">Zerado</option>
               <option value="negativo">Negativo</option>
               <option value="duplicado">Duplicado</option>

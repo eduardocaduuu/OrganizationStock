@@ -1,12 +1,12 @@
 import React from 'react';
 import { Card, CardContent } from './ui/Card';
-import { AlertTriangle, MinusCircle, Package, Copy, MapPinOff } from 'lucide-react';
+import { AlertTriangle, MinusCircle, Package, Copy, MapPinOff, TrendingUp } from 'lucide-react';
 import { DashboardMetrics } from '../types';
 import { cn } from '../utils/cn';
 
 interface DashboardProps {
   metrics: DashboardMetrics;
-  onCardClick?: (filter: 'all' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco') => void;
+  onCardClick?: (filter: 'all' | 'positivo' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco') => void;
   activeFilter?: string;
   showAddressMetrics?: boolean;
   onViewMissingAddress?: () => void;
@@ -27,6 +27,14 @@ const Dashboard: React.FC<DashboardProps> = ({
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
       filter: 'all' as const,
+    },
+    {
+      title: 'Itens com Estoque Positivo',
+      value: metrics.itensPositivos,
+      icon: TrendingUp,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100',
+      filter: 'positivo' as const,
     },
     {
       title: 'Itens com Estoque Zerado',
@@ -75,8 +83,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className={cn(
-      "grid grid-cols-1 md:grid-cols-2 gap-4",
-      showAddressMetrics ? "lg:grid-cols-5" : "lg:grid-cols-4"
+      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
+      showAddressMetrics ? "xl:grid-cols-6" : "xl:grid-cols-5"
     )}>
       {cards.map((card, index) => (
         <Card

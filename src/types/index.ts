@@ -22,6 +22,7 @@ export type ItemStatus = 'zerado' | 'negativo' | 'duplicado' | 'variante';
 
 export interface DashboardMetrics {
   totalItems: number;
+  itensPositivos: number;
   itemsZerados: number;
   itemsNegativos: number;
   gruposDuplicados: number;

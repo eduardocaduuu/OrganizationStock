@@ -12,7 +12,7 @@ function App() {
   const [items, setItems] = useState<ProcessedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'positivo' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco'>('all');
   const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel'>('legacy');
   const [showMissingAddressModal, setShowMissingAddressModal] = useState(false);
 
@@ -31,11 +31,13 @@ function App() {
 
   const calculateMetrics = (items: ProcessedItem[]): DashboardMetrics => {
     const uniqueGroups = new Set<string>();
+    let itensPositivos = 0;
     let itemsZerados = 0;
     let itemsNegativos = 0;
     let itensSemEndereco = 0;
 
     items.forEach(item => {
+      if (item.quantidade > 0) itensPositivos++;
       if (item.quantidade === 0) itemsZerados++;
       if (item.quantidade < 0) itemsNegativos++;
       if (isAddressEmptyWithStock(item)) itensSemEndereco++;
@@ -50,13 +52,13 @@ function App() {
     });
 
     // Calcula percentual sobre itens com estoque > 0
-    const itensComEstoquePositivo = items.filter(item => item.quantidade > 0).length;
-    const percentualSemEndereco = itensComEstoquePositivo > 0
-      ? Math.round((itensSemEndereco / itensComEstoquePositivo) * 100)
+    const percentualSemEndereco = itensPositivos > 0
+      ? Math.round((itensSemEndereco / itensPositivos) * 100)
       : 0;
 
     return {
       totalItems: items.length,
+      itensPositivos,
       itemsZerados,
       itemsNegativos,
       gruposDuplicados: uniqueGroups.size,
@@ -87,6 +89,7 @@ function App() {
 
   const metrics = items.length > 0 ? calculateMetrics(items) : {
     totalItems: 0,
+    itensPositivos: 0,
     itemsZerados: 0,
     itemsNegativos: 0,
     gruposDuplicados: 0,
@@ -155,7 +158,8 @@ function App() {
                 Análise Detalhada
                 {activeFilter !== 'all' && (
                   <span className="ml-2 text-base font-normal text-gray-600">
-                    (Filtro: {activeFilter === 'zerado' ? 'Estoque Zerado' :
+                    (Filtro: {activeFilter === 'positivo' ? 'Estoque Positivo' :
+                             activeFilter === 'zerado' ? 'Estoque Zerado' :
                              activeFilter === 'negativo' ? 'Estoque Negativo' :
                              activeFilter === 'sem-endereco' ? 'Itens sem Endereço' :
                              'Duplicados/Variantes'})
