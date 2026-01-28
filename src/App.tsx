@@ -16,12 +16,17 @@ function App() {
   const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel'>('legacy');
   const [showMissingAddressModal, setShowMissingAddressModal] = useState(false);
 
-  const isAddressEmpty = (item: ProcessedItem): boolean => {
+  const hasNoAddress = (item: ProcessedItem): boolean => {
     const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
     const rackVazio = !item.rack || item.rack === '-' || item.rack.trim() === '';
     const linhaVazia = !item.linhaProdAlocado || item.linhaProdAlocado === '-' || item.linhaProdAlocado.trim() === '';
     const colunaVazia = !item.colunaProdAlocado || item.colunaProdAlocado === '-' || item.colunaProdAlocado.trim() === '';
     return estacaoVazia && rackVazio && linhaVazia && colunaVazia;
+  };
+
+  // Itens sem endereço que têm estoque (exclui zerados)
+  const isAddressEmptyWithStock = (item: ProcessedItem): boolean => {
+    return hasNoAddress(item) && item.quantidade > 0;
   };
 
   const calculateMetrics = (items: ProcessedItem[]): DashboardMetrics => {
@@ -33,7 +38,7 @@ function App() {
     items.forEach(item => {
       if (item.quantidade === 0) itemsZerados++;
       if (item.quantidade < 0) itemsNegativos++;
-      if (isAddressEmpty(item)) itensSemEndereco++;
+      if (isAddressEmptyWithStock(item)) itensSemEndereco++;
 
       if (item.status.includes('duplicado') || item.status.includes('variante')) {
         if (item.groupId) {
@@ -87,7 +92,7 @@ function App() {
     percentualSemEndereco: 0,
   };
 
-  const itemsSemEndereco = items.filter(isAddressEmpty);
+  const itemsSemEndereco = items.filter(isAddressEmptyWithStock);
 
   return (
     <div className="min-h-screen bg-gray-50">

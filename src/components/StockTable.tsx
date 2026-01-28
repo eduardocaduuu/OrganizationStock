@@ -16,12 +16,13 @@ type SortField = 'codMaterial' | 'descMaterial' | 'quantidade' | 'totalQuantity'
 type SortOrder = 'asc' | 'desc';
 type FilterStatus = 'all' | ItemStatus | 'sem-endereco';
 
-const isAddressEmpty = (item: ProcessedItem): boolean => {
+const isAddressEmptyWithStock = (item: ProcessedItem): boolean => {
   const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
   const rackVazio = !item.rack || item.rack === '-' || item.rack.trim() === '';
   const linhaVazia = !item.linhaProdAlocado || item.linhaProdAlocado === '-' || item.linhaProdAlocado.trim() === '';
   const colunaVazia = !item.colunaProdAlocado || item.colunaProdAlocado === '-' || item.colunaProdAlocado.trim() === '';
-  return estacaoVazia && rackVazio && linhaVazia && colunaVazia;
+  // Só conta como "sem endereço" se tiver estoque > 0
+  return estacaoVazia && rackVazio && linhaVazia && colunaVazia && item.quantidade > 0;
 };
 
 const StockTable: React.FC<StockTableProps> = ({ items, externalFilter, template = 'legacy' }) => {
@@ -69,7 +70,7 @@ const StockTable: React.FC<StockTableProps> = ({ items, externalFilter, template
     // Filtrar por status
     if (filterStatus !== 'all') {
       if (filterStatus === 'sem-endereco') {
-        result = result.filter(item => isAddressEmpty(item));
+        result = result.filter(item => isAddressEmptyWithStock(item));
       } else {
         result = result.filter(item => item.status.includes(filterStatus));
       }
