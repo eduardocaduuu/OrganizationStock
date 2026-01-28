@@ -49,8 +49,10 @@ function App() {
       }
     });
 
-    const percentualSemEndereco = items.length > 0
-      ? Math.round((itensSemEndereco / items.length) * 100)
+    // Calcula percentual sobre itens com estoque > 0
+    const itensComEstoquePositivo = items.filter(item => item.quantidade > 0).length;
+    const percentualSemEndereco = itensComEstoquePositivo > 0
+      ? Math.round((itensSemEndereco / itensComEstoquePositivo) * 100)
       : 0;
 
     return {
