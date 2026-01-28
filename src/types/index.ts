@@ -1,4 +1,4 @@
-export type ExcelTemplate = 'auto' | 'legacy' | 'disponivel';
+export type ExcelTemplate = 'auto' | 'legacy' | 'disponivel' | 'setores';
 
 export interface StockItem {
   codMaterial: string;
@@ -34,4 +34,31 @@ export interface VariantGroup {
   baseDescription: string;
   items: ProcessedItem[];
   totalQuantity: number;
+}
+
+// Tipos para análise de setores
+export interface SetorItem {
+  codigo: string;
+  descricao?: string;
+  totalFisico: number;
+  captacao: number; // Estoque
+  salaoVendas: number; // Salão de vendas
+  unidade: 'palmeira' | 'penedo' | 'desconhecida';
+  diferenca: number; // totalFisico - (captacao + salaoVendas)
+}
+
+export interface SetorMetrics {
+  totalItens: number;
+  // Métricas do Estoque (Captação)
+  captacaoPositivos: number;
+  captacaoNegativos: number;
+  captacaoZerados: number;
+  // Métricas do Salão de Vendas
+  salaoPositivos: number;
+  salaoNegativos: number;
+  salaoZerados: number;
+  // Unidade detectada
+  unidade: string;
+  // Itens com divergência
+  itensDivergentes: number;
 }

@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { StockItem, ProcessedItem, ItemStatus, VariantGroup, ExcelTemplate } from '../types';
+import { StockItem, ProcessedItem, ItemStatus, VariantGroup, ExcelTemplate, SetorItem, SetorMetrics } from '../types';
 
 /**
  * Detecta o template da planilha baseado nos headers
@@ -77,9 +77,10 @@ export const processExcelFile = async (
 
         const headers = rows[0].map((h: unknown) => String(h || ''));
 
-        // Detecta ou usa o template especificado
+        // Detecta ou usa o template especificado (setores é tratado separadamente)
         const effectiveTemplate: 'legacy' | 'disponivel' =
-          template === 'auto' ? detectTemplate(headers) : template;
+          template === 'auto' ? detectTemplate(headers) :
+          (template === 'setores' ? 'legacy' : template);
 
         const items = effectiveTemplate === 'disponivel'
           ? parseDisponivelData(rows)
@@ -385,6 +386,204 @@ export const exportToExcel = (items: ProcessedItem[], filename: string = 'relato
   XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
 
   // Auto-ajustar largura das colunas
+  const maxWidth = 50;
+  const colWidths = Object.keys(exportData[0] || {}).map(key => {
+    const maxLength = Math.max(
+      key.length,
+      ...exportData.map(row => String(row[key as keyof typeof row]).length)
+    );
+    return { wch: Math.min(maxLength + 2, maxWidth) };
+  });
+  ws['!cols'] = colWidths;
+
+  XLSX.writeFile(wb, filename);
+};
+
+/**
+ * Processa planilha de análise de setores
+ * Colunas: Codigo, Total - Físico, Captação...Físico, 13706/13707...Físico
+ */
+export const processSetoresFile = async (
+  file: File
+): Promise<{ items: SetorItem[]; metrics: SetorMetrics; unidade: string }> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        const rows = jsonData as unknown[][];
+        if (rows.length < 2) {
+          resolve({
+            items: [],
+            metrics: {
+              totalItens: 0,
+              captacaoPositivos: 0,
+              captacaoNegativos: 0,
+              captacaoZerados: 0,
+              salaoPositivos: 0,
+              salaoNegativos: 0,
+              salaoZerados: 0,
+              unidade: 'desconhecida',
+              itensDivergentes: 0
+            },
+            unidade: 'desconhecida'
+          });
+          return;
+        }
+
+        const headers = rows[0].map((h: unknown) => String(h || ''));
+        const result = parseSetoresData(rows, headers);
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    reader.onerror = () => reject(reader.error);
+    reader.readAsBinaryString(file);
+  });
+};
+
+const parseSetoresData = (
+  data: unknown[][],
+  headers: string[]
+): { items: SetorItem[]; metrics: SetorMetrics; unidade: string } => {
+  const normalizedHeaders = headers.map(h =>
+    h?.toString().toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  );
+
+  // Encontrar índice da coluna Codigo
+  const codigoIndex = normalizedHeaders.findIndex(h =>
+    h === 'codigo' || h === 'cod material' || h.includes('codigo')
+  );
+
+  // Encontrar índice da coluna Descrição (opcional)
+  const descricaoIndex = normalizedHeaders.findIndex(h =>
+    h === 'descricao' || h === 'desc material' || h.includes('descricao') || h.includes('nome material')
+  );
+
+  // Encontrar índice da coluna Total - Físico
+  const totalFisicoIndex = normalizedHeaders.findIndex(h =>
+    h.includes('total') && h.includes('fisico') && !h.includes('captacao') && !h.includes('13706') && !h.includes('13707')
+  );
+
+  // Encontrar índice da coluna Captação (Estoque) - contém "captacao" e termina com "fisico"
+  const captacaoIndex = normalizedHeaders.findIndex(h =>
+    h.includes('captacao') && h.includes('fisico')
+  );
+
+  // Encontrar índice da coluna Salão de Vendas - começa com 13706 ou 13707 e termina com "fisico"
+  const salaoIndex = normalizedHeaders.findIndex(h =>
+    (h.includes('13706') || h.includes('13707')) && h.includes('fisico')
+  );
+
+  // Detectar unidade
+  let unidade: 'palmeira' | 'penedo' | 'desconhecida' = 'desconhecida';
+  const salaoHeader = headers[salaoIndex] || '';
+  if (salaoHeader.includes('13706')) {
+    unidade = 'palmeira';
+  } else if (salaoHeader.includes('13707')) {
+    unidade = 'penedo';
+  }
+
+  if (codigoIndex === -1 || totalFisicoIndex === -1) {
+    console.log('Headers encontrados (setores):', normalizedHeaders);
+    throw new Error('Colunas obrigatórias não encontradas: "Codigo" e "Total - Físico"');
+  }
+
+  if (captacaoIndex === -1) {
+    throw new Error('Coluna de Captação (Estoque) não encontrada. Procurando por coluna que contenha "Captação" e "Físico"');
+  }
+
+  if (salaoIndex === -1) {
+    throw new Error('Coluna de Salão de Vendas não encontrada. Procurando por coluna que comece com "13706" ou "13707" e contenha "Físico"');
+  }
+
+  const items: SetorItem[] = [];
+  let captacaoPositivos = 0;
+  let captacaoNegativos = 0;
+  let captacaoZerados = 0;
+  let salaoPositivos = 0;
+  let salaoNegativos = 0;
+  let salaoZerados = 0;
+  let itensDivergentes = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i] as unknown[];
+    if (!row || row.length === 0) continue;
+
+    const codigo = String(row[codigoIndex] || '').trim();
+    if (!codigo) continue;
+
+    const descricao = descricaoIndex !== -1 ? String(row[descricaoIndex] || '').trim() : undefined;
+    const totalFisico = parseNumberBR(row[totalFisicoIndex]);
+    const captacao = parseNumberBR(row[captacaoIndex]);
+    const salaoVendas = parseNumberBR(row[salaoIndex]);
+    const diferenca = totalFisico - (captacao + salaoVendas);
+
+    // Contabilizar métricas do Estoque (Captação)
+    if (captacao > 0) captacaoPositivos++;
+    else if (captacao < 0) captacaoNegativos++;
+    else captacaoZerados++;
+
+    // Contabilizar métricas do Salão de Vendas
+    if (salaoVendas > 0) salaoPositivos++;
+    else if (salaoVendas < 0) salaoNegativos++;
+    else salaoZerados++;
+
+    // Verificar divergência
+    if (Math.abs(diferenca) > 0.01) {
+      itensDivergentes++;
+    }
+
+    items.push({
+      codigo,
+      descricao,
+      totalFisico,
+      captacao,
+      salaoVendas,
+      unidade,
+      diferenca
+    });
+  }
+
+  const metrics: SetorMetrics = {
+    totalItens: items.length,
+    captacaoPositivos,
+    captacaoNegativos,
+    captacaoZerados,
+    salaoPositivos,
+    salaoNegativos,
+    salaoZerados,
+    unidade: unidade === 'palmeira' ? 'Unidade Palmeira (13706)' :
+             unidade === 'penedo' ? 'Unidade Penedo (13707)' : 'Desconhecida',
+    itensDivergentes
+  };
+
+  return { items, metrics, unidade };
+};
+
+export const exportSetoresToExcel = (items: SetorItem[], _unidade?: string, filename: string = 'relatorio-setores.xlsx') => {
+  const exportData = items.map(item => ({
+    'Código': item.codigo,
+    'Descrição': item.descricao || '-',
+    'Total Físico': item.totalFisico,
+    'Estoque (Captação)': item.captacao,
+    'Salão de Vendas': item.salaoVendas,
+    'Diferença': item.diferenca,
+    'Status': item.diferenca !== 0 ? 'DIVERGENTE' : 'OK'
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Análise Setores');
+
   const maxWidth = 50;
   const colWidths = Object.keys(exportData[0] || {}).map(key => {
     const maxLength = Math.max(

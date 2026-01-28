@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, X, Package, MapPin } from 'lucide-react';
+import { Upload, FileSpreadsheet, X, Package, MapPin, Building2 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import Button from './ui/Button';
 import { Card, CardContent } from './ui/Card';
@@ -178,7 +178,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, loading = false }
         <p className="text-gray-500">Selecione o tipo de relatório que deseja importar</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <UploadCard
           title="Estoque Disponível"
           description="Planilha com colunas: Código Material, Nome Material, Total - Disponível"
@@ -205,6 +205,20 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, loading = false }
           onFileSelect={handleFileSelect}
           onClearFile={clearFile}
           inputId="file-upload-legacy"
+        />
+
+        <UploadCard
+          title="Análise de Setores"
+          description="Analisa estoque por setor: Captação (Estoque) e Salão de Vendas (13706/13707)"
+          icon={Building2}
+          iconColor="text-purple-600"
+          iconBgColor="bg-purple-100"
+          template="setores"
+          selectedFile={activeTemplate === 'setores' ? selectedFile : null}
+          loading={loading && activeTemplate === 'setores'}
+          onFileSelect={handleFileSelect}
+          onClearFile={clearFile}
+          inputId="file-upload-setores"
         />
       </div>
 

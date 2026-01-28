@@ -4,17 +4,23 @@ import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 import StockTable from './components/StockTable';
 import MissingAddressModal from './components/MissingAddressModal';
+import SetoresDashboard from './components/SetoresDashboard';
 import Alert from './components/ui/Alert';
-import { ProcessedItem, DashboardMetrics, ExcelTemplate } from './types';
-import { processExcelFile } from './utils/excelProcessor';
+import { ProcessedItem, DashboardMetrics, ExcelTemplate, SetorItem, SetorMetrics } from './types';
+import { processExcelFile, processSetoresFile } from './utils/excelProcessor';
 
 function App() {
   const [items, setItems] = useState<ProcessedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'positivo' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco'>('all');
-  const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel'>('legacy');
+  const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel' | 'setores'>('legacy');
   const [showMissingAddressModal, setShowMissingAddressModal] = useState(false);
+
+  // Estado para análise de setores
+  const [setorItems, setSetorItems] = useState<SetorItem[]>([]);
+  const [setorMetrics, setSetorMetrics] = useState<SetorMetrics | null>(null);
+  const [setorUnidade, setSetorUnidade] = useState<string>('');
 
   const hasNoAddress = (item: ProcessedItem): boolean => {
     const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
@@ -71,17 +77,29 @@ function App() {
     setLoading(true);
     setError(null);
 
+    // Limpar estados anteriores
+    setItems([]);
+    setSetorItems([]);
+    setSetorMetrics(null);
+
     try {
-      const result = await processExcelFile(file, template);
-      setItems(result.items);
-      setDetectedTemplate(result.detectedTemplate);
+      if (template === 'setores') {
+        const result = await processSetoresFile(file);
+        setSetorItems(result.items);
+        setSetorMetrics(result.metrics);
+        setSetorUnidade(result.unidade);
+        setDetectedTemplate('setores');
+      } else {
+        const result = await processExcelFile(file, template);
+        setItems(result.items);
+        setDetectedTemplate(result.detectedTemplate);
+      }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : 'Erro ao processar arquivo. Verifique se o formato está correto.'
       );
-      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -116,8 +134,19 @@ function App() {
           </Alert>
         )}
 
+        {/* Análise de Setores */}
+        {detectedTemplate === 'setores' && setorItems.length > 0 && setorMetrics && (
+          <section>
+            <SetoresDashboard
+              items={setorItems}
+              metrics={setorMetrics}
+              unidade={setorUnidade}
+            />
+          </section>
+        )}
+
         {/* Dashboard & Table */}
-        {items.length > 0 && (
+        {detectedTemplate !== 'setores' && items.length > 0 && (
           <>
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
@@ -172,7 +201,7 @@ function App() {
         )}
 
         {/* Empty State */}
-        {!loading && items.length === 0 && !error && (
+        {!loading && items.length === 0 && setorItems.length === 0 && !error && (
           <div className="text-center py-16">
             <div className="inline-block p-6 bg-primary-50 rounded-full mb-4">
               <svg
