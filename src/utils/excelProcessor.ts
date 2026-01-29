@@ -424,8 +424,12 @@ export const processSetoresFile = async (
               totalItens: 0,
               estoqueAlocadoTotal: 0,
               estoqueDisponivelTotal: 0,
+              estoqueZerados: 0,
+              estoqueNegativos: 0,
               salaoAlocadoTotal: 0,
               salaoDisponivelTotal: 0,
+              salaoZerados: 0,
+              salaoNegativos: 0,
               unidade: 'desconhecida',
               itensDivergentes: 0
             },
@@ -536,8 +540,12 @@ const parseSetoresData = (
   const items: SetorItem[] = [];
   let estoqueAlocadoTotal = 0;
   let estoqueDisponivelTotal = 0;
+  let estoqueZerados = 0;
+  let estoqueNegativos = 0;
   let salaoAlocadoTotal = 0;
   let salaoDisponivelTotal = 0;
+  let salaoZerados = 0;
+  let salaoNegativos = 0;
   let itensDivergentes = 0;
 
   for (let i = 1; i < data.length; i++) {
@@ -561,6 +569,16 @@ const parseSetoresData = (
     salaoAlocadoTotal += salAloc;
     salaoDisponivelTotal += salDisp;
 
+    // Contabilizar zerados e negativos do Estoque (soma de alocado + disponível)
+    const estoqueTotal = estAloc + estDisp;
+    if (estoqueTotal === 0) estoqueZerados++;
+    else if (estoqueTotal < 0) estoqueNegativos++;
+
+    // Contabilizar zerados e negativos do Salão (soma de alocado + disponível)
+    const salaoTotal = salAloc + salDisp;
+    if (salaoTotal === 0) salaoZerados++;
+    else if (salaoTotal < 0) salaoNegativos++;
+
     // Verificar divergência
     if (Math.abs(diferenca) > 0.01) {
       itensDivergentes++;
@@ -583,8 +601,12 @@ const parseSetoresData = (
     totalItens: items.length,
     estoqueAlocadoTotal,
     estoqueDisponivelTotal,
+    estoqueZerados,
+    estoqueNegativos,
     salaoAlocadoTotal,
     salaoDisponivelTotal,
+    salaoZerados,
+    salaoNegativos,
     unidade: unidade === 'palmeira' ? 'Unidade Palmeira (13706)' :
              unidade === 'penedo' ? 'Unidade Penedo (13707)' : 'Desconhecida',
     itensDivergentes

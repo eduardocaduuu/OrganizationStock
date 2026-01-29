@@ -56,9 +56,13 @@ export interface SetorMetrics {
   // Totais do Estoque (Captação)
   estoqueAlocadoTotal: number;
   estoqueDisponivelTotal: number;
+  estoqueZerados: number;
+  estoqueNegativos: number;
   // Totais do Salão de Vendas
   salaoAlocadoTotal: number;
   salaoDisponivelTotal: number;
+  salaoZerados: number;
+  salaoNegativos: number;
   // Unidade detectada
   unidade: string;
   // Itens com divergência

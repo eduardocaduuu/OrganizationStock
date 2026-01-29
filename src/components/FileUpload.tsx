@@ -1,7 +1,6 @@
 import React, { useCallback, useState, useRef } from 'react';
 import { Upload, FileSpreadsheet, X, Package, MapPin, Building2 } from 'lucide-react';
 import { cn } from '../utils/cn';
-import Button from './ui/Button';
 import { Card, CardContent } from './ui/Card';
 import { ExcelTemplate } from '../types';
 
@@ -113,26 +112,28 @@ const UploadCard: React.FC<UploadCardProps> = ({
             <p className="text-sm text-gray-500 mb-4">{description}</p>
 
             {selectedFile ? (
-              <div className="flex items-center gap-3 bg-white border border-green-200 rounded-lg px-4 py-3">
-                <FileSpreadsheet className="h-5 w-5 text-green-600" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{selectedFile.name}</p>
+              <div className="flex items-center gap-3 bg-white border border-green-200 rounded-lg px-4 py-3 overflow-hidden max-w-full">
+                <FileSpreadsheet className="h-5 w-5 text-green-600 shrink-0" />
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <p className="font-medium text-gray-900 truncate text-sm" title={selectedFile.name}>
+                    {selectedFile.name}
+                  </p>
                   <p className="text-xs text-gray-500">
                     {(selectedFile.size / 1024).toFixed(2)} KB
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onClearFile();
                   }}
                   disabled={loading}
-                  className="text-gray-500 hover:text-red-600"
+                  className="shrink-0 p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  aria-label="Remover arquivo"
                 >
                   <X className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             ) : (
               <div className="flex items-center gap-2 text-sm text-gray-500">

@@ -7,7 +7,9 @@ import {
   PackageCheck,
   AlertTriangle,
   Download,
-  Search
+  Search,
+  MinusCircle,
+  TrendingDown
 } from 'lucide-react';
 import { SetorItem, SetorMetrics } from '../types';
 import { cn } from '../utils/cn';
@@ -119,6 +121,16 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
                 </p>
                 <p className="text-xs text-gray-600">Disponível</p>
               </div>
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <MinusCircle className="h-5 w-5 text-gray-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-gray-600">{metrics.estoqueZerados}</p>
+                <p className="text-xs text-gray-600">Zerados</p>
+              </div>
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <TrendingDown className="h-5 w-5 text-red-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-red-600">{metrics.estoqueNegativos}</p>
+                <p className="text-xs text-gray-600">Negativos</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -158,6 +170,16 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
                   {metrics.salaoDisponivelTotal.toLocaleString('pt-BR')}
                 </p>
                 <p className="text-xs text-gray-600">Disponível</p>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <MinusCircle className="h-5 w-5 text-gray-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-gray-600">{metrics.salaoZerados}</p>
+                <p className="text-xs text-gray-600">Zerados</p>
+              </div>
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <TrendingDown className="h-5 w-5 text-red-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-red-600">{metrics.salaoNegativos}</p>
+                <p className="text-xs text-gray-600">Negativos</p>
               </div>
             </div>
           </CardContent>
