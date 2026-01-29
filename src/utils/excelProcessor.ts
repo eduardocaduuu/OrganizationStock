@@ -422,12 +422,10 @@ export const processSetoresFile = async (
             items: [],
             metrics: {
               totalItens: 0,
-              captacaoPositivos: 0,
-              captacaoNegativos: 0,
-              captacaoZerados: 0,
-              salaoPositivos: 0,
-              salaoNegativos: 0,
-              salaoZerados: 0,
+              estoqueAlocadoTotal: 0,
+              estoqueDisponivelTotal: 0,
+              salaoAlocadoTotal: 0,
+              salaoDisponivelTotal: 0,
               unidade: 'desconhecida',
               itensDivergentes: 0
             },
@@ -456,62 +454,90 @@ const parseSetoresData = (
   const normalizedHeaders = headers.map(h =>
     h?.toString().toLowerCase().trim()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
   );
+
+  console.log('Headers normalizados (setores):', normalizedHeaders);
 
   // Encontrar índice da coluna Codigo
   const codigoIndex = normalizedHeaders.findIndex(h =>
     h === 'codigo' || h === 'cod material' || h.includes('codigo')
   );
 
-  // Encontrar índice da coluna Descrição (opcional)
+  // Encontrar índice da coluna Descrição / Nome Material (opcional)
   const descricaoIndex = normalizedHeaders.findIndex(h =>
     h === 'descricao' || h === 'desc material' || h.includes('descricao') || h.includes('nome material')
   );
 
-  // Encontrar índice da coluna Total - Físico
+  // Encontrar índice da coluna Total - Físico (retaguarda)
   const totalFisicoIndex = normalizedHeaders.findIndex(h =>
-    h.includes('total') && h.includes('fisico') && !h.includes('captacao') && !h.includes('13706') && !h.includes('13707')
+    h.includes('total') && h.includes('fisico')
   );
 
-  // Encontrar índice da coluna Captação (Estoque) - contém "captacao" e termina com "fisico"
-  const captacaoIndex = normalizedHeaders.findIndex(h =>
-    h.includes('captacao') && h.includes('fisico')
+  // --- Colunas de ESTOQUE (Captação) ---
+  // Contém "captacao" e "alocado" (ex: "Captação - ACQUA... - Alocado" ou "13707 - Captação - ACQUA... - Alocado")
+  const estoqueAlocadoIndex = normalizedHeaders.findIndex(h =>
+    h.includes('captacao') && h.includes('alocado')
   );
 
-  // Encontrar índice da coluna Salão de Vendas - começa com 13706 ou 13707 e termina com "fisico"
-  const salaoIndex = normalizedHeaders.findIndex(h =>
-    (h.includes('13706') || h.includes('13707')) && h.includes('fisico')
+  // Contém "captacao" e "disponivel" (ex: "Captação - ACQUA... - Disponível" ou "13707 - Captação - ACQUA... - Disponível")
+  const estoqueDisponivelIndex = normalizedHeaders.findIndex(h =>
+    h.includes('captacao') && h.includes('disponivel')
   );
 
-  // Detectar unidade
+  // --- Colunas de SALÃO DE VENDAS ---
+  // Contém "13706" ou "13707", contém " as " (separador de salão), e "alocado"
+  // Ex: "13706 - AS - ACQUA... - Alocado" ou "13707 - AS - ACQUA... - Alocado"
+  const salaoAlocadoIndex = normalizedHeaders.findIndex(h =>
+    (h.includes('13706') || h.includes('13707')) && h.includes(' as ') && h.includes('alocado')
+  );
+
+  // Contém "13706" ou "13707", contém " as ", e "disponivel"
+  // Ex: "13706 - AS - ACQUA... - Disponível" ou "13707 - AS - ACQUA... - Disponível"
+  const salaoDisponivelIndex = normalizedHeaders.findIndex(h =>
+    (h.includes('13706') || h.includes('13707')) && h.includes(' as ') && h.includes('disponivel')
+  );
+
+  // Detectar unidade pelo header do salão (que sempre tem 13706 ou 13707)
   let unidade: 'palmeira' | 'penedo' | 'desconhecida' = 'desconhecida';
-  const salaoHeader = headers[salaoIndex] || '';
+  const salaoHeader = salaoAlocadoIndex !== -1 ? normalizedHeaders[salaoAlocadoIndex] : '';
   if (salaoHeader.includes('13706')) {
     unidade = 'palmeira';
   } else if (salaoHeader.includes('13707')) {
     unidade = 'penedo';
   }
 
+  // Validações
   if (codigoIndex === -1 || totalFisicoIndex === -1) {
     console.log('Headers encontrados (setores):', normalizedHeaders);
     throw new Error('Colunas obrigatórias não encontradas: "Codigo" e "Total - Físico"');
   }
 
-  if (captacaoIndex === -1) {
-    throw new Error('Coluna de Captação (Estoque) não encontrada. Procurando por coluna que contenha "Captação" e "Físico"');
+  if (estoqueAlocadoIndex === -1 || estoqueDisponivelIndex === -1) {
+    console.log('Headers encontrados (setores):', normalizedHeaders);
+    throw new Error(
+      'Colunas de Estoque (Captação) não encontradas. ' +
+      'Procurando por colunas que contenham "Captação" com "Alocado" e "Disponível". ' +
+      `Alocado: ${estoqueAlocadoIndex !== -1 ? 'OK' : 'NÃO ENCONTRADO'}, ` +
+      `Disponível: ${estoqueDisponivelIndex !== -1 ? 'OK' : 'NÃO ENCONTRADO'}`
+    );
   }
 
-  if (salaoIndex === -1) {
-    throw new Error('Coluna de Salão de Vendas não encontrada. Procurando por coluna que comece com "13706" ou "13707" e contenha "Físico"');
+  if (salaoAlocadoIndex === -1 || salaoDisponivelIndex === -1) {
+    console.log('Headers encontrados (setores):', normalizedHeaders);
+    throw new Error(
+      'Colunas de Salão de Vendas não encontradas. ' +
+      'Procurando por colunas com "13706"/"13707" + "AS" + "Alocado"/"Disponível". ' +
+      `Alocado: ${salaoAlocadoIndex !== -1 ? 'OK' : 'NÃO ENCONTRADO'}, ` +
+      `Disponível: ${salaoDisponivelIndex !== -1 ? 'OK' : 'NÃO ENCONTRADO'}`
+    );
   }
 
   const items: SetorItem[] = [];
-  let captacaoPositivos = 0;
-  let captacaoNegativos = 0;
-  let captacaoZerados = 0;
-  let salaoPositivos = 0;
-  let salaoNegativos = 0;
-  let salaoZerados = 0;
+  let estoqueAlocadoTotal = 0;
+  let estoqueDisponivelTotal = 0;
+  let salaoAlocadoTotal = 0;
+  let salaoDisponivelTotal = 0;
   let itensDivergentes = 0;
 
   for (let i = 1; i < data.length; i++) {
@@ -523,19 +549,17 @@ const parseSetoresData = (
 
     const descricao = descricaoIndex !== -1 ? String(row[descricaoIndex] || '').trim() : undefined;
     const totalFisico = parseNumberBR(row[totalFisicoIndex]);
-    const captacao = parseNumberBR(row[captacaoIndex]);
-    const salaoVendas = parseNumberBR(row[salaoIndex]);
-    const diferenca = totalFisico - (captacao + salaoVendas);
+    const estAloc = parseNumberBR(row[estoqueAlocadoIndex]);
+    const estDisp = parseNumberBR(row[estoqueDisponivelIndex]);
+    const salAloc = parseNumberBR(row[salaoAlocadoIndex]);
+    const salDisp = parseNumberBR(row[salaoDisponivelIndex]);
+    const diferenca = totalFisico - (estAloc + estDisp + salAloc + salDisp);
 
-    // Contabilizar métricas do Estoque (Captação)
-    if (captacao > 0) captacaoPositivos++;
-    else if (captacao < 0) captacaoNegativos++;
-    else captacaoZerados++;
-
-    // Contabilizar métricas do Salão de Vendas
-    if (salaoVendas > 0) salaoPositivos++;
-    else if (salaoVendas < 0) salaoNegativos++;
-    else salaoZerados++;
+    // Somar totais para métricas
+    estoqueAlocadoTotal += estAloc;
+    estoqueDisponivelTotal += estDisp;
+    salaoAlocadoTotal += salAloc;
+    salaoDisponivelTotal += salDisp;
 
     // Verificar divergência
     if (Math.abs(diferenca) > 0.01) {
@@ -546,8 +570,10 @@ const parseSetoresData = (
       codigo,
       descricao,
       totalFisico,
-      captacao,
-      salaoVendas,
+      estoqueAlocado: estAloc,
+      estoqueDisponivel: estDisp,
+      salaoAlocado: salAloc,
+      salaoDisponivel: salDisp,
       unidade,
       diferenca
     });
@@ -555,12 +581,10 @@ const parseSetoresData = (
 
   const metrics: SetorMetrics = {
     totalItens: items.length,
-    captacaoPositivos,
-    captacaoNegativos,
-    captacaoZerados,
-    salaoPositivos,
-    salaoNegativos,
-    salaoZerados,
+    estoqueAlocadoTotal,
+    estoqueDisponivelTotal,
+    salaoAlocadoTotal,
+    salaoDisponivelTotal,
     unidade: unidade === 'palmeira' ? 'Unidade Palmeira (13706)' :
              unidade === 'penedo' ? 'Unidade Penedo (13707)' : 'Desconhecida',
     itensDivergentes
@@ -573,11 +597,13 @@ export const exportSetoresToExcel = (items: SetorItem[], _unidade?: string, file
   const exportData = items.map(item => ({
     'Código': item.codigo,
     'Descrição': item.descricao || '-',
-    'Total Físico': item.totalFisico,
-    'Estoque (Captação)': item.captacao,
-    'Salão de Vendas': item.salaoVendas,
+    'Total Físico (Retaguarda)': item.totalFisico,
+    'Estoque Alocado': item.estoqueAlocado,
+    'Estoque Disponível': item.estoqueDisponivel,
+    'Salão Alocado': item.salaoAlocado,
+    'Salão Disponível': item.salaoDisponivel,
     'Diferença': item.diferenca,
-    'Status': item.diferenca !== 0 ? 'DIVERGENTE' : 'OK'
+    'Status': Math.abs(item.diferenca) > 0.01 ? 'DIVERGENTE' : 'OK'
   }));
 
   const ws = XLSX.utils.json_to_sheet(exportData);

@@ -41,22 +41,24 @@ export interface SetorItem {
   codigo: string;
   descricao?: string;
   totalFisico: number;
-  captacao: number; // Estoque
-  salaoVendas: number; // Salão de vendas
+  // Estoque (Captação)
+  estoqueAlocado: number;
+  estoqueDisponivel: number;
+  // Salão de Vendas
+  salaoAlocado: number;
+  salaoDisponivel: number;
   unidade: 'palmeira' | 'penedo' | 'desconhecida';
-  diferenca: number; // totalFisico - (captacao + salaoVendas)
+  diferenca: number; // totalFisico - (estoqueAlocado + estoqueDisponivel + salaoAlocado + salaoDisponivel)
 }
 
 export interface SetorMetrics {
   totalItens: number;
-  // Métricas do Estoque (Captação)
-  captacaoPositivos: number;
-  captacaoNegativos: number;
-  captacaoZerados: number;
-  // Métricas do Salão de Vendas
-  salaoPositivos: number;
-  salaoNegativos: number;
-  salaoZerados: number;
+  // Totais do Estoque (Captação)
+  estoqueAlocadoTotal: number;
+  estoqueDisponivelTotal: number;
+  // Totais do Salão de Vendas
+  salaoAlocadoTotal: number;
+  salaoDisponivelTotal: number;
   // Unidade detectada
   unidade: string;
   // Itens com divergência

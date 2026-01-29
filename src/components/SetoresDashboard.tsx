@@ -3,9 +3,8 @@ import { Card, CardContent } from './ui/Card';
 import {
   Warehouse,
   Store,
-  TrendingUp,
-  TrendingDown,
-  MinusCircle,
+  Lock,
+  PackageCheck,
   AlertTriangle,
   Download,
   Search
@@ -22,9 +21,11 @@ interface SetoresDashboardProps {
   unidade: string;
 }
 
+type FilterType = 'all' | 'estoque-alocado' | 'estoque-disponivel' | 'salao-alocado' | 'salao-disponivel' | 'divergente';
+
 const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, unidade }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterSetor, setFilterSetor] = useState<'all' | 'captacao-positivo' | 'captacao-negativo' | 'salao-positivo' | 'salao-negativo' | 'divergente'>('all');
+  const [filterSetor, setFilterSetor] = useState<FilterType>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -39,14 +40,14 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
 
     // Filtro de setor
     switch (filterSetor) {
-      case 'captacao-positivo':
-        return item.captacao > 0;
-      case 'captacao-negativo':
-        return item.captacao < 0;
-      case 'salao-positivo':
-        return item.salaoVendas > 0;
-      case 'salao-negativo':
-        return item.salaoVendas < 0;
+      case 'estoque-alocado':
+        return item.estoqueAlocado > 0;
+      case 'estoque-disponivel':
+        return item.estoqueDisponivel > 0;
+      case 'salao-alocado':
+        return item.salaoAlocado > 0;
+      case 'salao-disponivel':
+        return item.salaoDisponivel > 0;
       case 'divergente':
         return Math.abs(item.diferenca) > 0.01;
       default:
@@ -63,6 +64,11 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
 
   const handleExport = () => {
     exportSetoresToExcel(filteredItems, unidade);
+  };
+
+  const toggleFilter = (filter: FilterType) => {
+    setFilterSetor(prev => prev === filter ? 'all' : filter);
+    setCurrentPage(1);
   };
 
   return (
@@ -86,33 +92,32 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Estoque (Captação)</h3>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div
                 className={cn(
                   "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md",
-                  filterSetor === 'captacao-positivo' ? "bg-green-200 ring-2 ring-green-500" : "bg-green-50"
+                  filterSetor === 'estoque-alocado' ? "bg-amber-200 ring-2 ring-amber-500" : "bg-amber-50"
                 )}
-                onClick={() => setFilterSetor(filterSetor === 'captacao-positivo' ? 'all' : 'captacao-positivo')}
+                onClick={() => toggleFilter('estoque-alocado')}
               >
-                <TrendingUp className="h-5 w-5 text-green-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-green-600">{metrics.captacaoPositivos}</p>
-                <p className="text-xs text-gray-600">Positivos</p>
+                <Lock className="h-5 w-5 text-amber-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-amber-600">
+                  {metrics.estoqueAlocadoTotal.toLocaleString('pt-BR')}
+                </p>
+                <p className="text-xs text-gray-600">Alocado</p>
               </div>
               <div
                 className={cn(
                   "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md",
-                  filterSetor === 'captacao-negativo' ? "bg-red-200 ring-2 ring-red-500" : "bg-red-50"
+                  filterSetor === 'estoque-disponivel' ? "bg-green-200 ring-2 ring-green-500" : "bg-green-50"
                 )}
-                onClick={() => setFilterSetor(filterSetor === 'captacao-negativo' ? 'all' : 'captacao-negativo')}
+                onClick={() => toggleFilter('estoque-disponivel')}
               >
-                <TrendingDown className="h-5 w-5 text-red-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-red-600">{metrics.captacaoNegativos}</p>
-                <p className="text-xs text-gray-600">Negativos</p>
-              </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <MinusCircle className="h-5 w-5 text-gray-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-gray-600">{metrics.captacaoZerados}</p>
-                <p className="text-xs text-gray-600">Zerados</p>
+                <PackageCheck className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-green-600">
+                  {metrics.estoqueDisponivelTotal.toLocaleString('pt-BR')}
+                </p>
+                <p className="text-xs text-gray-600">Disponível</p>
               </div>
             </div>
           </CardContent>
@@ -127,33 +132,32 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Salão de Vendas</h3>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div
                 className={cn(
                   "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md",
-                  filterSetor === 'salao-positivo' ? "bg-green-200 ring-2 ring-green-500" : "bg-green-50"
+                  filterSetor === 'salao-alocado' ? "bg-amber-200 ring-2 ring-amber-500" : "bg-amber-50"
                 )}
-                onClick={() => setFilterSetor(filterSetor === 'salao-positivo' ? 'all' : 'salao-positivo')}
+                onClick={() => toggleFilter('salao-alocado')}
               >
-                <TrendingUp className="h-5 w-5 text-green-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-green-600">{metrics.salaoPositivos}</p>
-                <p className="text-xs text-gray-600">Positivos</p>
+                <Lock className="h-5 w-5 text-amber-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-amber-600">
+                  {metrics.salaoAlocadoTotal.toLocaleString('pt-BR')}
+                </p>
+                <p className="text-xs text-gray-600">Alocado</p>
               </div>
               <div
                 className={cn(
                   "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md",
-                  filterSetor === 'salao-negativo' ? "bg-red-200 ring-2 ring-red-500" : "bg-red-50"
+                  filterSetor === 'salao-disponivel' ? "bg-green-200 ring-2 ring-green-500" : "bg-green-50"
                 )}
-                onClick={() => setFilterSetor(filterSetor === 'salao-negativo' ? 'all' : 'salao-negativo')}
+                onClick={() => toggleFilter('salao-disponivel')}
               >
-                <TrendingDown className="h-5 w-5 text-red-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-red-600">{metrics.salaoNegativos}</p>
-                <p className="text-xs text-gray-600">Negativos</p>
-              </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <MinusCircle className="h-5 w-5 text-gray-500 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-gray-600">{metrics.salaoZerados}</p>
-                <p className="text-xs text-gray-600">Zerados</p>
+                <PackageCheck className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-green-600">
+                  {metrics.salaoDisponivelTotal.toLocaleString('pt-BR')}
+                </p>
+                <p className="text-xs text-gray-600">Disponível</p>
               </div>
             </div>
           </CardContent>
@@ -167,7 +171,7 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
             "border-l-4 border-l-orange-500 cursor-pointer transition-all hover:shadow-lg",
             filterSetor === 'divergente' && "ring-2 ring-orange-500"
           )}
-          onClick={() => setFilterSetor(filterSetor === 'divergente' ? 'all' : 'divergente')}
+          onClick={() => toggleFilter('divergente')}
         >
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -179,7 +183,7 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
                   {metrics.itensDivergentes} itens com divergência
                 </p>
                 <p className="text-sm text-gray-500">
-                  Total Físico diferente da soma dos setores
+                  Total Físico (Retaguarda) diferente da soma dos setores (Alocado + Disponível)
                 </p>
               </div>
             </div>
@@ -206,7 +210,7 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
         </div>
         <div className="flex gap-2">
           {filterSetor !== 'all' && (
-            <Button variant="outline" size="sm" onClick={() => setFilterSetor('all')}>
+            <Button variant="outline" size="sm" onClick={() => { setFilterSetor('all'); setCurrentPage(1); }}>
               Limpar filtro
             </Button>
           )}
@@ -223,22 +227,28 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Código
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Descrição
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Total Físico
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Retaguarda
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Estoque
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-blue-50">
+                  Est. Alocado
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Salão
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-blue-50">
+                  Est. Disponível
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-purple-50">
+                  Salão Alocado
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-purple-50">
+                  Salão Disponível
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   Diferença
                 </th>
               </tr>
@@ -252,36 +262,52 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
                     Math.abs(item.diferenca) > 0.01 && "bg-orange-50"
                   )}
                 >
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  <td className="px-4 py-4 text-sm font-medium text-gray-900">
                     {item.codigo}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">
+                  <td className="px-4 py-4 text-sm text-gray-700 max-w-xs truncate">
                     {item.descricao || '-'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-right font-medium text-gray-900">
+                  <td className="px-4 py-4 text-sm text-right font-medium text-gray-900">
                     {item.totalFisico.toLocaleString('pt-BR')}
                   </td>
-                  <td className="px-6 py-4 text-sm text-right">
+                  <td className="px-4 py-4 text-sm text-right bg-blue-50/30">
                     <span className={cn(
                       "font-medium",
-                      item.captacao > 0 && "text-green-600",
-                      item.captacao < 0 && "text-red-600",
-                      item.captacao === 0 && "text-gray-500"
+                      item.estoqueAlocado > 0 && "text-amber-600",
+                      item.estoqueAlocado === 0 && "text-gray-400"
                     )}>
-                      {item.captacao.toLocaleString('pt-BR')}
+                      {item.estoqueAlocado.toLocaleString('pt-BR')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-right">
+                  <td className="px-4 py-4 text-sm text-right bg-blue-50/30">
                     <span className={cn(
                       "font-medium",
-                      item.salaoVendas > 0 && "text-green-600",
-                      item.salaoVendas < 0 && "text-red-600",
-                      item.salaoVendas === 0 && "text-gray-500"
+                      item.estoqueDisponivel > 0 && "text-green-600",
+                      item.estoqueDisponivel === 0 && "text-gray-400"
                     )}>
-                      {item.salaoVendas.toLocaleString('pt-BR')}
+                      {item.estoqueDisponivel.toLocaleString('pt-BR')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-right">
+                  <td className="px-4 py-4 text-sm text-right bg-purple-50/30">
+                    <span className={cn(
+                      "font-medium",
+                      item.salaoAlocado > 0 && "text-amber-600",
+                      item.salaoAlocado === 0 && "text-gray-400"
+                    )}>
+                      {item.salaoAlocado.toLocaleString('pt-BR')}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-right bg-purple-50/30">
+                    <span className={cn(
+                      "font-medium",
+                      item.salaoDisponivel > 0 && "text-green-600",
+                      item.salaoDisponivel === 0 && "text-gray-400"
+                    )}>
+                      {item.salaoDisponivel.toLocaleString('pt-BR')}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-right">
                     {Math.abs(item.diferenca) > 0.01 ? (
                       <Badge variant="warning">
                         {item.diferenca > 0 ? '+' : ''}{item.diferenca.toLocaleString('pt-BR')}
