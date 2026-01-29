@@ -23,7 +23,7 @@ interface SetoresDashboardProps {
   unidade: string;
 }
 
-type FilterType = 'all' | 'estoque-alocado' | 'estoque-disponivel' | 'salao-alocado' | 'salao-disponivel' | 'divergente';
+type FilterType = 'all' | 'estoque-alocado' | 'estoque-disponivel' | 'estoque-zerado' | 'estoque-negativo' | 'salao-alocado' | 'salao-disponivel' | 'salao-zerado' | 'salao-negativo' | 'divergente';
 
 const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, unidade }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,10 +46,18 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
         return item.estoqueAlocado > 0;
       case 'estoque-disponivel':
         return item.estoqueDisponivel > 0;
+      case 'estoque-zerado':
+        return (item.estoqueAlocado + item.estoqueDisponivel) === 0;
+      case 'estoque-negativo':
+        return (item.estoqueAlocado + item.estoqueDisponivel) < 0;
       case 'salao-alocado':
         return item.salaoAlocado > 0;
       case 'salao-disponivel':
         return item.salaoDisponivel > 0;
+      case 'salao-zerado':
+        return (item.salaoAlocado + item.salaoDisponivel) === 0;
+      case 'salao-negativo':
+        return (item.salaoAlocado + item.salaoDisponivel) < 0;
       case 'divergente':
         return Math.abs(item.diferenca) > 0.01;
       default:
@@ -121,12 +129,24 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
                 </p>
                 <p className="text-xs text-gray-600">Disponível</p>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div
+                className={cn(
+                  "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md",
+                  filterSetor === 'estoque-zerado' ? "bg-gray-200 ring-2 ring-gray-500" : "bg-gray-50"
+                )}
+                onClick={() => toggleFilter('estoque-zerado')}
+              >
                 <MinusCircle className="h-5 w-5 text-gray-500 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-gray-600">{metrics.estoqueZerados}</p>
                 <p className="text-xs text-gray-600">Zerados</p>
               </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg">
+              <div
+                className={cn(
+                  "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md",
+                  filterSetor === 'estoque-negativo' ? "bg-red-200 ring-2 ring-red-500" : "bg-red-50"
+                )}
+                onClick={() => toggleFilter('estoque-negativo')}
+              >
                 <TrendingDown className="h-5 w-5 text-red-500 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-red-600">{metrics.estoqueNegativos}</p>
                 <p className="text-xs text-gray-600">Negativos</p>
@@ -171,12 +191,24 @@ const SetoresDashboard: React.FC<SetoresDashboardProps> = ({ items, metrics, uni
                 </p>
                 <p className="text-xs text-gray-600">Disponível</p>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div
+                className={cn(
+                  "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md",
+                  filterSetor === 'salao-zerado' ? "bg-gray-200 ring-2 ring-gray-500" : "bg-gray-50"
+                )}
+                onClick={() => toggleFilter('salao-zerado')}
+              >
                 <MinusCircle className="h-5 w-5 text-gray-500 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-gray-600">{metrics.salaoZerados}</p>
                 <p className="text-xs text-gray-600">Zerados</p>
               </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg">
+              <div
+                className={cn(
+                  "text-center p-3 rounded-lg cursor-pointer transition-all hover:shadow-md",
+                  filterSetor === 'salao-negativo' ? "bg-red-200 ring-2 ring-red-500" : "bg-red-50"
+                )}
+                onClick={() => toggleFilter('salao-negativo')}
+              >
                 <TrendingDown className="h-5 w-5 text-red-500 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-red-600">{metrics.salaoNegativos}</p>
                 <p className="text-xs text-gray-600">Negativos</p>
