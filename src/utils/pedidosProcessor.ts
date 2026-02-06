@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
-import { PedidoItem, PedidosMetrics, DistribuicaoAtraso, PedidosResult } from '../types/pedidos';
-import { getProximoDiaUtil, calcularDiasUteis, isDiaUtil } from './feriadosNacionais';
+import { PedidoItem, PedidosMetrics, UnidadeMetrics, DistribuicaoAtraso, PedidosResult, UnidadePedido } from '../types/pedidos';
+import { getProximoDiaUtil, calcularDiasUteis, isDiaUtilAprovacao } from './feriadosNacionais';
 
 /**
  * Parser robusto para números no formato brasileiro
@@ -68,6 +68,27 @@ const parseDateBR = (value: unknown): Date | null => {
 };
 
 /**
+ * Determina a unidade com base no código da estrutura pai
+ */
+const getUnidade = (codEstruturaPai: string): UnidadePedido => {
+  const codigo = codEstruturaPai.trim();
+  if (codigo === '1515') return 'palmeira';
+  if (codigo === '1048') return 'penedo';
+  return 'desconhecida';
+};
+
+/**
+ * Retorna o nome da unidade
+ */
+export const getNomeUnidade = (unidade: UnidadePedido): string => {
+  switch (unidade) {
+    case 'palmeira': return 'Palmeira dos Índios';
+    case 'penedo': return 'Penedo';
+    default: return 'Desconhecida';
+  }
+};
+
+/**
  * Processa arquivo Excel de pedidos
  */
 export const processPedidosFile = async (file: File): Promise<PedidosResult> => {
@@ -83,11 +104,7 @@ export const processPedidosFile = async (file: File): Promise<PedidosResult> => 
 
         const rows = jsonData as unknown[][];
         if (rows.length < 2) {
-          resolve({
-            items: [],
-            metrics: getEmptyMetrics(),
-            distribuicaoAtraso: []
-          });
+          resolve(getEmptyResult());
           return;
         }
 
@@ -116,6 +133,22 @@ const getEmptyMetrics = (): PedidosMetrics => ({
   valorAtrasados: 0,
 });
 
+const getEmptyUnidadeMetrics = (unidade: UnidadePedido): UnidadeMetrics => ({
+  ...getEmptyMetrics(),
+  unidade,
+  nomeUnidade: getNomeUnidade(unidade),
+});
+
+const getEmptyResult = (): PedidosResult => ({
+  items: [],
+  metrics: getEmptyMetrics(),
+  metricsPalmeira: getEmptyUnidadeMetrics('palmeira'),
+  metricsPenedo: getEmptyUnidadeMetrics('penedo'),
+  distribuicaoAtraso: [],
+  distribuicaoAtrasoPalmeira: [],
+  distribuicaoAtrasoPenedo: [],
+});
+
 /**
  * Encontra índice de coluna de forma flexível
  */
@@ -142,6 +175,88 @@ const findColumnIndex = (headers: string[], ...possibleNames: string[]): number 
 };
 
 /**
+ * Calcula métricas para um conjunto de pedidos
+ */
+const calcularMetrics = (items: PedidoItem[]): PedidosMetrics => {
+  if (items.length === 0) return getEmptyMetrics();
+
+  let valorTotal = 0;
+  let valorNoPrazo = 0;
+  let valorAtrasados = 0;
+  let somaDiasUteis = 0;
+  let pedidosNoPrazo = 0;
+  let pedidosAtrasados = 0;
+
+  items.forEach(item => {
+    valorTotal += item.valorPraticado;
+    somaDiasUteis += item.diasUteis;
+
+    if (item.dentroDosPrazo) {
+      pedidosNoPrazo++;
+      valorNoPrazo += item.valorPraticado;
+    } else {
+      pedidosAtrasados++;
+      valorAtrasados += item.valorPraticado;
+    }
+  });
+
+  const totalPedidos = items.length;
+  const percentualNoPrazo = totalPedidos > 0 ? Math.round((pedidosNoPrazo / totalPedidos) * 100) : 0;
+  const percentualAtrasados = totalPedidos > 0 ? Math.round((pedidosAtrasados / totalPedidos) * 100) : 0;
+  const tempoMedioDiasUteis = totalPedidos > 0 ? Math.round((somaDiasUteis / totalPedidos) * 10) / 10 : 0;
+
+  return {
+    totalPedidos,
+    valorTotal,
+    pedidosNoPrazo,
+    pedidosAtrasados,
+    percentualNoPrazo,
+    percentualAtrasados,
+    tempoMedioDiasUteis,
+    valorNoPrazo,
+    valorAtrasados,
+  };
+};
+
+/**
+ * Calcula distribuição de atraso para um conjunto de pedidos
+ */
+const calcularDistribuicaoAtraso = (items: PedidoItem[]): DistribuicaoAtraso[] => {
+  const atrasados = items.filter(i => !i.dentroDosPrazo);
+  if (atrasados.length === 0) return [];
+
+  const distribuicaoContador: Record<string, number> = {
+    '1 dia': 0,
+    '2 dias': 0,
+    '3 dias': 0,
+    '4 dias': 0,
+    '5+ dias': 0,
+  };
+
+  atrasados.forEach(item => {
+    const diasAtraso = item.diasUteis - 1;
+    if (diasAtraso === 1) distribuicaoContador['1 dia']++;
+    else if (diasAtraso === 2) distribuicaoContador['2 dias']++;
+    else if (diasAtraso === 3) distribuicaoContador['3 dias']++;
+    else if (diasAtraso === 4) distribuicaoContador['4 dias']++;
+    else distribuicaoContador['5+ dias']++;
+  });
+
+  const distribuicao: DistribuicaoAtraso[] = [];
+  Object.entries(distribuicaoContador).forEach(([diasAtraso, quantidade]) => {
+    if (quantidade > 0) {
+      distribuicao.push({
+        diasAtraso,
+        quantidade,
+        percentual: Math.round((quantidade / atrasados.length) * 100),
+      });
+    }
+  });
+
+  return distribuicao;
+};
+
+/**
  * Parser dos dados de pedidos
  */
 const parsePedidosData = (data: unknown[][], headers: string[]): PedidosResult => {
@@ -150,6 +265,7 @@ const parsePedidosData = (data: unknown[][], headers: string[]): PedidosResult =
   const valorIndex = findColumnIndex(headers, 'valorpraticado', 'valor praticado', 'valor');
   const dataAprovacaoIndex = findColumnIndex(headers, 'data aprovacao', 'dataaprovacao', 'aprovacao', 'data aprovação');
   const dataFaturamentoIndex = findColumnIndex(headers, 'datafaturamento', 'data faturamento', 'faturamento');
+  const codEstruturaPaiIndex = findColumnIndex(headers, 'cod estrutura pai', 'codestruturapai', 'estrutura pai', 'cod. estrutura pai');
 
   // Validações
   if (codigoIndex === -1) {
@@ -166,21 +282,6 @@ const parsePedidosData = (data: unknown[][], headers: string[]): PedidosResult =
   }
 
   const items: PedidoItem[] = [];
-  let valorTotal = 0;
-  let valorNoPrazo = 0;
-  let valorAtrasados = 0;
-  let somaDiasUteis = 0;
-  let pedidosNoPrazo = 0;
-  let pedidosAtrasados = 0;
-
-  // Contadores para distribuição de atraso
-  const distribuicaoContador: Record<string, number> = {
-    '1 dia': 0,
-    '2 dias': 0,
-    '3 dias': 0,
-    '4 dias': 0,
-    '5+ dias': 0,
-  };
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i] as unknown[];
@@ -195,8 +296,14 @@ const parsePedidosData = (data: unknown[][], headers: string[]): PedidosResult =
 
     if (!dataAprovacaoOriginal || !dataFaturamento) continue;
 
+    // Ler código da estrutura pai
+    const codEstruturaPai = codEstruturaPaiIndex !== -1
+      ? String(row[codEstruturaPaiIndex] || '').trim()
+      : '';
+    const unidade = getUnidade(codEstruturaPai);
+
     // Ajustar data de aprovação para próximo dia útil se necessário
-    const dataAprovacaoAjustada = isDiaUtil(dataAprovacaoOriginal)
+    const dataAprovacaoAjustada = isDiaUtilAprovacao(dataAprovacaoOriginal)
       ? new Date(dataAprovacaoOriginal)
       : getProximoDiaUtil(dataAprovacaoOriginal);
 
@@ -217,61 +324,45 @@ const parsePedidosData = (data: unknown[][], headers: string[]): PedidosResult =
       diasUteis,
       dentroDosPrazo,
       status,
-    });
-
-    // Acumular métricas
-    valorTotal += valorPraticado;
-    somaDiasUteis += diasUteis;
-
-    if (dentroDosPrazo) {
-      pedidosNoPrazo++;
-      valorNoPrazo += valorPraticado;
-    } else {
-      pedidosAtrasados++;
-      valorAtrasados += valorPraticado;
-
-      // Distribuição de atraso (dias além do prazo de 1 dia)
-      const diasAtraso = diasUteis - 1;
-      if (diasAtraso === 1) distribuicaoContador['1 dia']++;
-      else if (diasAtraso === 2) distribuicaoContador['2 dias']++;
-      else if (diasAtraso === 3) distribuicaoContador['3 dias']++;
-      else if (diasAtraso === 4) distribuicaoContador['4 dias']++;
-      else distribuicaoContador['5+ dias']++;
-    }
-  }
-
-  const totalPedidos = items.length;
-  const percentualNoPrazo = totalPedidos > 0 ? Math.round((pedidosNoPrazo / totalPedidos) * 100) : 0;
-  const percentualAtrasados = totalPedidos > 0 ? Math.round((pedidosAtrasados / totalPedidos) * 100) : 0;
-  const tempoMedioDiasUteis = totalPedidos > 0 ? Math.round((somaDiasUteis / totalPedidos) * 10) / 10 : 0;
-
-  // Montar distribuição de atraso
-  const distribuicaoAtraso: DistribuicaoAtraso[] = [];
-  if (pedidosAtrasados > 0) {
-    Object.entries(distribuicaoContador).forEach(([diasAtraso, quantidade]) => {
-      if (quantidade > 0) {
-        distribuicaoAtraso.push({
-          diasAtraso,
-          quantidade,
-          percentual: Math.round((quantidade / pedidosAtrasados) * 100),
-        });
-      }
+      codEstruturaPai,
+      unidade,
     });
   }
 
-  const metrics: PedidosMetrics = {
-    totalPedidos,
-    valorTotal,
-    pedidosNoPrazo,
-    pedidosAtrasados,
-    percentualNoPrazo,
-    percentualAtrasados,
-    tempoMedioDiasUteis,
-    valorNoPrazo,
-    valorAtrasados,
+  // Separar por unidade
+  const itemsPalmeira = items.filter(i => i.unidade === 'palmeira');
+  const itemsPenedo = items.filter(i => i.unidade === 'penedo');
+
+  // Calcular métricas gerais
+  const metrics = calcularMetrics(items);
+
+  // Calcular métricas por unidade
+  const metricsPalmeira: UnidadeMetrics = {
+    ...calcularMetrics(itemsPalmeira),
+    unidade: 'palmeira',
+    nomeUnidade: getNomeUnidade('palmeira'),
   };
 
-  return { items, metrics, distribuicaoAtraso };
+  const metricsPenedo: UnidadeMetrics = {
+    ...calcularMetrics(itemsPenedo),
+    unidade: 'penedo',
+    nomeUnidade: getNomeUnidade('penedo'),
+  };
+
+  // Calcular distribuição de atraso
+  const distribuicaoAtraso = calcularDistribuicaoAtraso(items);
+  const distribuicaoAtrasoPalmeira = calcularDistribuicaoAtraso(itemsPalmeira);
+  const distribuicaoAtrasoPenedo = calcularDistribuicaoAtraso(itemsPenedo);
+
+  return {
+    items,
+    metrics,
+    metricsPalmeira,
+    metricsPenedo,
+    distribuicaoAtraso,
+    distribuicaoAtrasoPalmeira,
+    distribuicaoAtrasoPenedo,
+  };
 };
 
 /**
@@ -301,6 +392,8 @@ export const exportPedidosToExcel = (
   const exportData = items.map(item => ({
     'Código Pedido': item.codigoPedido,
     'Valor Praticado': item.valorPraticado,
+    'Unidade': getNomeUnidade(item.unidade),
+    'Cód Estrutura Pai': item.codEstruturaPai,
     'Data Aprovação (Original)': formatDate(item.dataAprovacaoOriginal),
     'Data Aprovação (Ajustada)': formatDate(item.dataAprovacao),
     'Data Faturamento': formatDate(item.dataFaturamento),

@@ -7,7 +7,7 @@ import MissingAddressModal from './components/MissingAddressModal';
 import SetoresDashboard from './components/SetoresDashboard';
 import PedidosDashboard from './components/PedidosDashboard';
 import Alert from './components/ui/Alert';
-import { ProcessedItem, DashboardMetrics, ExcelTemplate, SetorItem, SetorMetrics, PedidoItem, PedidosMetrics, DistribuicaoAtraso } from './types';
+import { ProcessedItem, DashboardMetrics, ExcelTemplate, SetorItem, SetorMetrics, PedidoItem, PedidosMetrics, UnidadeMetrics, DistribuicaoAtraso } from './types';
 import { processExcelFile, processSetoresFile } from './utils/excelProcessor';
 import { processPedidosFile } from './utils/pedidosProcessor';
 
@@ -27,7 +27,11 @@ function App() {
   // Estado para análise de pedidos
   const [pedidoItems, setPedidoItems] = useState<PedidoItem[]>([]);
   const [pedidoMetrics, setPedidoMetrics] = useState<PedidosMetrics | null>(null);
+  const [pedidoMetricsPalmeira, setPedidoMetricsPalmeira] = useState<UnidadeMetrics | null>(null);
+  const [pedidoMetricsPenedo, setPedidoMetricsPenedo] = useState<UnidadeMetrics | null>(null);
   const [distribuicaoAtraso, setDistribuicaoAtraso] = useState<DistribuicaoAtraso[]>([]);
+  const [distribuicaoAtrasoPalmeira, setDistribuicaoAtrasoPalmeira] = useState<DistribuicaoAtraso[]>([]);
+  const [distribuicaoAtrasoPenedo, setDistribuicaoAtrasoPenedo] = useState<DistribuicaoAtraso[]>([]);
 
   const hasNoAddress = (item: ProcessedItem): boolean => {
     const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
@@ -90,7 +94,11 @@ function App() {
     setSetorMetrics(null);
     setPedidoItems([]);
     setPedidoMetrics(null);
+    setPedidoMetricsPalmeira(null);
+    setPedidoMetricsPenedo(null);
     setDistribuicaoAtraso([]);
+    setDistribuicaoAtrasoPalmeira([]);
+    setDistribuicaoAtrasoPenedo([]);
 
     try {
       if (template === 'setores') {
@@ -103,7 +111,11 @@ function App() {
         const result = await processPedidosFile(file);
         setPedidoItems(result.items);
         setPedidoMetrics(result.metrics);
+        setPedidoMetricsPalmeira(result.metricsPalmeira);
+        setPedidoMetricsPenedo(result.metricsPenedo);
         setDistribuicaoAtraso(result.distribuicaoAtraso);
+        setDistribuicaoAtrasoPalmeira(result.distribuicaoAtrasoPalmeira);
+        setDistribuicaoAtrasoPenedo(result.distribuicaoAtrasoPenedo);
         setDetectedTemplate('pedidos');
       } else {
         const result = await processExcelFile(file, template);
@@ -162,7 +174,7 @@ function App() {
         )}
 
         {/* Análise de Pedidos */}
-        {detectedTemplate === 'pedidos' && pedidoItems.length > 0 && pedidoMetrics && (
+        {detectedTemplate === 'pedidos' && pedidoItems.length > 0 && pedidoMetrics && pedidoMetricsPalmeira && pedidoMetricsPenedo && (
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Análise de Tempo de Vida dos Pedidos
@@ -173,7 +185,11 @@ function App() {
             <PedidosDashboard
               items={pedidoItems}
               metrics={pedidoMetrics}
+              metricsPalmeira={pedidoMetricsPalmeira}
+              metricsPenedo={pedidoMetricsPenedo}
               distribuicaoAtraso={distribuicaoAtraso}
+              distribuicaoAtrasoPalmeira={distribuicaoAtrasoPalmeira}
+              distribuicaoAtrasoPenedo={distribuicaoAtrasoPenedo}
             />
           </section>
         )}
