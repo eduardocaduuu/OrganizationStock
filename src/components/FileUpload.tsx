@@ -103,18 +103,18 @@ const UploadCard: React.FC<UploadCardProps> = ({
           disabled={loading}
         />
 
-        <div className="flex items-start gap-4">
-          <div className={cn('p-4 rounded-lg', iconBgColor)}>
+        <div className="flex items-start gap-4 min-w-0">
+          <div className={cn('p-4 rounded-lg shrink-0', iconBgColor)}>
             <Icon className={cn('h-8 w-8', iconColor)} />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0 overflow-hidden">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">{title}</h3>
             <p className="text-sm text-gray-500 mb-4">{description}</p>
 
             {selectedFile ? (
-              <div className="flex items-center gap-3 bg-white border border-green-200 rounded-lg px-4 py-3 overflow-hidden max-w-full">
+              <div className="flex items-center gap-3 bg-white border border-green-200 rounded-lg px-4 py-3">
                 <FileSpreadsheet className="h-5 w-5 text-green-600 shrink-0" />
-                <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate text-sm" title={selectedFile.name}>
                     {selectedFile.name}
                   </p>
