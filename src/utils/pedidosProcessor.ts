@@ -69,9 +69,11 @@ const parseDateBR = (value: unknown): Date | null => {
 
 /**
  * Determina a unidade com base no código da estrutura pai
+ * Aceita formatos: "1515", "1.515", "1048", "1.048"
  */
 const getUnidade = (codEstruturaPai: string): UnidadePedido => {
-  const codigo = codEstruturaPai.trim();
+  // Remove pontos, vírgulas e espaços para normalizar o código
+  const codigo = codEstruturaPai.trim().replace(/[.\s]/g, '');
   if (codigo === '1515') return 'palmeira';
   if (codigo === '1048') return 'penedo';
   return 'desconhecida';
