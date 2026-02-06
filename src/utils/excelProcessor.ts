@@ -77,10 +77,10 @@ export const processExcelFile = async (
 
         const headers = rows[0].map((h: unknown) => String(h || ''));
 
-        // Detecta ou usa o template especificado (setores é tratado separadamente)
+        // Detecta ou usa o template especificado (setores e pedidos são tratados separadamente)
         const effectiveTemplate: 'legacy' | 'disponivel' =
           template === 'auto' ? detectTemplate(headers) :
-          (template === 'setores' ? 'legacy' : template);
+          (template === 'setores' || template === 'pedidos' ? 'legacy' : template);
 
         const items = effectiveTemplate === 'disponivel'
           ? parseDisponivelData(rows)

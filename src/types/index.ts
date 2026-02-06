@@ -1,4 +1,7 @@
-export type ExcelTemplate = 'auto' | 'legacy' | 'disponivel' | 'setores';
+export type ExcelTemplate = 'auto' | 'legacy' | 'disponivel' | 'setores' | 'pedidos';
+
+// Re-exportar tipos de pedidos
+export * from './pedidos';
 
 export interface StockItem {
   codMaterial: string;

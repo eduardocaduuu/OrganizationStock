@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, X, Package, MapPin, Building2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, X, Package, MapPin, Building2, Clock } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Card, CardContent } from './ui/Card';
 import { ExcelTemplate } from '../types';
@@ -179,7 +179,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, loading = false }
         <p className="text-gray-500">Selecione o tipo de relatório que deseja importar</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <UploadCard
           title="Estoque Disponível"
           description="Planilha com colunas: Código Material, Nome Material, Total - Disponível"
@@ -220,6 +220,20 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, loading = false }
           onFileSelect={handleFileSelect}
           onClearFile={clearFile}
           inputId="file-upload-setores"
+        />
+
+        <UploadCard
+          title="Tempo de Vida de Pedidos"
+          description="Analisa tempo entre aprovação e faturamento (regra de 24h úteis)"
+          icon={Clock}
+          iconColor="text-orange-600"
+          iconBgColor="bg-orange-100"
+          template="pedidos"
+          selectedFile={activeTemplate === 'pedidos' ? selectedFile : null}
+          loading={loading && activeTemplate === 'pedidos'}
+          onFileSelect={handleFileSelect}
+          onClearFile={clearFile}
+          inputId="file-upload-pedidos"
         />
       </div>
 

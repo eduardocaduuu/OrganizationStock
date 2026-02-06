@@ -5,22 +5,29 @@ import Dashboard from './components/Dashboard';
 import StockTable from './components/StockTable';
 import MissingAddressModal from './components/MissingAddressModal';
 import SetoresDashboard from './components/SetoresDashboard';
+import PedidosDashboard from './components/PedidosDashboard';
 import Alert from './components/ui/Alert';
-import { ProcessedItem, DashboardMetrics, ExcelTemplate, SetorItem, SetorMetrics } from './types';
+import { ProcessedItem, DashboardMetrics, ExcelTemplate, SetorItem, SetorMetrics, PedidoItem, PedidosMetrics, DistribuicaoAtraso } from './types';
 import { processExcelFile, processSetoresFile } from './utils/excelProcessor';
+import { processPedidosFile } from './utils/pedidosProcessor';
 
 function App() {
   const [items, setItems] = useState<ProcessedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'positivo' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco'>('all');
-  const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel' | 'setores'>('legacy');
+  const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel' | 'setores' | 'pedidos'>('legacy');
   const [showMissingAddressModal, setShowMissingAddressModal] = useState(false);
 
   // Estado para análise de setores
   const [setorItems, setSetorItems] = useState<SetorItem[]>([]);
   const [setorMetrics, setSetorMetrics] = useState<SetorMetrics | null>(null);
   const [setorUnidade, setSetorUnidade] = useState<string>('');
+
+  // Estado para análise de pedidos
+  const [pedidoItems, setPedidoItems] = useState<PedidoItem[]>([]);
+  const [pedidoMetrics, setPedidoMetrics] = useState<PedidosMetrics | null>(null);
+  const [distribuicaoAtraso, setDistribuicaoAtraso] = useState<DistribuicaoAtraso[]>([]);
 
   const hasNoAddress = (item: ProcessedItem): boolean => {
     const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
@@ -81,6 +88,9 @@ function App() {
     setItems([]);
     setSetorItems([]);
     setSetorMetrics(null);
+    setPedidoItems([]);
+    setPedidoMetrics(null);
+    setDistribuicaoAtraso([]);
 
     try {
       if (template === 'setores') {
@@ -89,6 +99,12 @@ function App() {
         setSetorMetrics(result.metrics);
         setSetorUnidade(result.unidade);
         setDetectedTemplate('setores');
+      } else if (template === 'pedidos') {
+        const result = await processPedidosFile(file);
+        setPedidoItems(result.items);
+        setPedidoMetrics(result.metrics);
+        setDistribuicaoAtraso(result.distribuicaoAtraso);
+        setDetectedTemplate('pedidos');
       } else {
         const result = await processExcelFile(file, template);
         setItems(result.items);
@@ -145,8 +161,25 @@ function App() {
           </section>
         )}
 
+        {/* Análise de Pedidos */}
+        {detectedTemplate === 'pedidos' && pedidoItems.length > 0 && pedidoMetrics && (
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Análise de Tempo de Vida dos Pedidos
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Regra: Pedidos devem ser faturados em até 24 horas úteis após aprovação
+            </p>
+            <PedidosDashboard
+              items={pedidoItems}
+              metrics={pedidoMetrics}
+              distribuicaoAtraso={distribuicaoAtraso}
+            />
+          </section>
+        )}
+
         {/* Dashboard & Table */}
-        {detectedTemplate !== 'setores' && items.length > 0 && (
+        {detectedTemplate !== 'setores' && detectedTemplate !== 'pedidos' && items.length > 0 && (
           <>
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
@@ -201,7 +234,7 @@ function App() {
         )}
 
         {/* Empty State */}
-        {!loading && items.length === 0 && setorItems.length === 0 && !error && (
+        {!loading && items.length === 0 && setorItems.length === 0 && pedidoItems.length === 0 && !error && (
           <div className="text-center py-16">
             <div className="inline-block p-6 bg-primary-50 rounded-full mb-4">
               <svg
