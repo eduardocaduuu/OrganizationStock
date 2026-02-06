@@ -91,6 +91,20 @@ export const isFeriado = (data: Date): boolean => {
 };
 
 /**
+ * Verifica se uma data é domingo
+ */
+export const isDomingo = (data: Date): boolean => {
+  return data.getDay() === 0;
+};
+
+/**
+ * Verifica se uma data é sábado
+ */
+export const isSabado = (data: Date): boolean => {
+  return data.getDay() === 6;
+};
+
+/**
  * Verifica se uma data é fim de semana (sábado ou domingo)
  */
 export const isFimDeSemana = (data: Date): boolean => {
@@ -99,19 +113,35 @@ export const isFimDeSemana = (data: Date): boolean => {
 };
 
 /**
- * Verifica se uma data é dia útil (não é fim de semana nem feriado)
+ * Verifica se uma data é dia útil para APROVAÇÃO (segunda a sexta)
+ * Sábado e domingo NÃO são dias úteis para aprovação
  */
-export const isDiaUtil = (data: Date): boolean => {
+export const isDiaUtilAprovacao = (data: Date): boolean => {
   return !isFimDeSemana(data) && !isFeriado(data);
 };
 
 /**
- * Retorna o próximo dia útil a partir de uma data
+ * Verifica se uma data é dia útil para FATURAMENTO (segunda a sábado)
+ * Apenas domingo NÃO é dia útil para faturamento
+ */
+export const isDiaUtilFaturamento = (data: Date): boolean => {
+  return !isDomingo(data) && !isFeriado(data);
+};
+
+/**
+ * Verifica se uma data é dia útil (padrão: usa regra de aprovação)
+ */
+export const isDiaUtil = (data: Date): boolean => {
+  return isDiaUtilAprovacao(data);
+};
+
+/**
+ * Retorna o próximo dia útil para aprovação a partir de uma data
  * Se a data já for dia útil, retorna ela mesma
  */
 export const getProximoDiaUtil = (data: Date): Date => {
   const resultado = new Date(data);
-  while (!isDiaUtil(resultado)) {
+  while (!isDiaUtilAprovacao(resultado)) {
     resultado.setDate(resultado.getDate() + 1);
   }
   return resultado;
@@ -119,6 +149,7 @@ export const getProximoDiaUtil = (data: Date): Date => {
 
 /**
  * Calcula a quantidade de dias úteis entre duas datas
+ * Considera segunda a sábado como dias úteis para faturamento
  * Não inclui a data inicial, inclui a data final
  */
 export const calcularDiasUteis = (dataInicio: Date, dataFim: Date): number => {
@@ -127,7 +158,7 @@ export const calcularDiasUteis = (dataInicio: Date, dataFim: Date): number => {
   atual.setDate(atual.getDate() + 1); // Começa do dia seguinte
 
   while (atual <= dataFim) {
-    if (isDiaUtil(atual)) {
+    if (isDiaUtilFaturamento(atual)) {
       diasUteis++;
     }
     atual.setDate(atual.getDate() + 1);
