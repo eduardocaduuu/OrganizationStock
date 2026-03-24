@@ -10,7 +10,7 @@ const Header: React.FC = () => {
             <Package className="h-8 w-8" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Sistema de Controle de Estoque</h1>
+            <h1 className="text-2xl font-bold">Padrão Logístico Alcina Maria</h1>
             <p className="text-primary-200 text-sm">Análise e Gestão Inteligente</p>
           </div>
         </div>

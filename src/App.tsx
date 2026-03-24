@@ -313,7 +313,7 @@ function App() {
       <footer className="bg-primary-900 text-white mt-16 py-6">
         <div className="container mx-auto px-4 text-center">
           <p className="text-primary-200">
-            Sistema de Controle de Estoque - {new Date().getFullYear()}
+            Padrão Logístico Alcina Maria - {new Date().getFullYear()}
           </p>
         </div>
       </footer>
