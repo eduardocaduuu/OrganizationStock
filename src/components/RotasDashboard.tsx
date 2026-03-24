@@ -574,8 +574,61 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
         </Card>
       </section>
 
-      {/* ── Seção 7: Motoristas com maiores distâncias ───────────────────────── */}
-      <section>
+      {/* ── Seção 7: Rankings de motoristas ──────────────────────────────────── */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Motoristas que mais entregam */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Motoristas que Mais Entregam
+            </CardTitle>
+            <p className="text-xs text-gray-500 mt-0.5">Ordenado por pedidos entregues com sucesso</p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-gray-100">
+              {[...motoristas]
+                .filter(m => m.entregues > 0)
+                .sort((a, b) => b.entregues - a.entregues)
+                .slice(0, 10)
+                .map((m, i) => (
+                  <div
+                    key={m.nome}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-green-50"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        className={cn(
+                          'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                          i === 0
+                            ? 'bg-green-500 text-white'
+                            : i === 1
+                            ? 'bg-green-200 text-green-700'
+                            : i === 2
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-gray-100 text-gray-500'
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                      <p className="text-sm font-medium text-gray-900 truncate">{m.nome}</p>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <p className="text-sm font-semibold text-green-600">
+                        {m.entregues} entregues
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {m.taxaSucesso}% de sucesso
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Motoristas com maiores distâncias médias */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
