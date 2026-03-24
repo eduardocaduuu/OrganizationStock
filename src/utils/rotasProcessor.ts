@@ -94,7 +94,9 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
     freteTotal = 0;
   let distanciaTotal = 0,
     totalItens = 0;
-  const tiposMap = new Map<string, number>();
+  const tiposDifMap = new Map<string, number>();
+  const tiposOcorrMap = new Map<string, number>();
+  let pedidosComOcorrencia = 0;
 
   const palmItems = items.filter(i => i.unidade === 'palmeira');
   const penItems = items.filter(i => i.unidade === 'penedo');
@@ -104,10 +106,17 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
     else if (item.status === 'dificuldade') {
       totalDificuldades++;
       const tipo = item.statusOriginal || 'Desconhecido';
-      tiposMap.set(tipo, (tiposMap.get(tipo) || 0) + 1);
+      tiposDifMap.set(tipo, (tiposDifMap.get(tipo) || 0) + 1);
     } else if (item.status === 'retirado') totalRetirados++;
 
     totalOcorrencias += item.quantidadeOcorrencias;
+
+    if (item.temOcorrencias && item.ultimaOcorrenciaStatus) {
+      pedidosComOcorrencia++;
+      const tipo = item.ultimaOcorrenciaStatus;
+      tiposOcorrMap.set(tipo, (tiposOcorrMap.get(tipo) || 0) + 1);
+    }
+
     valorTotal += item.valorTotal;
     freteTotal += item.precoFrete;
     distanciaTotal += item.distanciaMetros;
@@ -133,7 +142,11 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
     return m;
   };
 
-  const tiposDificuldade = Array.from(tiposMap.entries())
+  const tiposDificuldade = Array.from(tiposDifMap.entries())
+    .map(([tipo, quantidade]) => ({ tipo, quantidade }))
+    .sort((a, b) => b.quantidade - a.quantidade);
+
+  const tiposOcorrencia = Array.from(tiposOcorrMap.entries())
     .map(([tipo, quantidade]) => ({ tipo, quantidade }))
     .sort((a, b) => b.quantidade - a.quantidade);
 
@@ -145,6 +158,7 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
     percentualEntregues: total > 0 ? Math.round((totalEntregues / total) * 100) : 0,
     percentualDificuldades: total > 0 ? Math.round((totalDificuldades / total) * 100) : 0,
     totalOcorrencias,
+    pedidosComOcorrencia,
     valorTotal,
     freteTotal,
     freteMedia: total > 0 ? freteTotal / total : 0,
@@ -152,6 +166,7 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
     distanciaMedia: total > 0 ? distanciaTotal / total : 0,
     totalItens,
     tiposDificuldade,
+    tiposOcorrencia,
     palmeira: calcUnidade(palmItems, 'Palmeira dos Índios'),
     penedo: calcUnidade(penItems, 'Penedo'),
   };

@@ -47,6 +47,7 @@ const COLORS = {
 };
 
 const ITEMS_PER_PAGE = 10;
+const OCORRENCIAS_PER_PAGE = 10;
 
 // ─── Metric Card ────────────────────────────────────────────────────────────
 const MetricCard: React.FC<{
@@ -179,6 +180,7 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
   const [sortMotoristas, setSortMotoristas] = useState<'total' | 'dificuldade' | 'distancia'>(
     'total'
   );
+  const [ocorrenciaPage, setOcorrenciaPage] = useState(0);
 
   // Pie chart data
   const pieData = useMemo(
@@ -246,6 +248,21 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
         .sort((a, b) => b.distanciaMedia - a.distanciaMedia)
         .slice(0, 10),
     [motoristas]
+  );
+
+  // Pedidos com ocorrências (ordenados por quantidade de ocorrências desc)
+  const itensComOcorrencia = useMemo(
+    () =>
+      items
+        .filter(i => i.temOcorrencias)
+        .sort((a, b) => b.quantidadeOcorrencias - a.quantidadeOcorrencias),
+    [items]
+  );
+
+  const totalOcorrenciaPages = Math.ceil(itensComOcorrencia.length / OCORRENCIAS_PER_PAGE);
+  const itensOcorrenciaPaged = itensComOcorrencia.slice(
+    ocorrenciaPage * OCORRENCIAS_PER_PAGE,
+    (ocorrenciaPage + 1) * OCORRENCIAS_PER_PAGE
   );
 
   return (
@@ -334,7 +351,7 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
           <MetricCard
             title="Distância Média por Pedido"
             value={formatDistance(metrics.distanciaMedia)}
-            subtitle={`${metrics.totalOcorrencias.toLocaleString('pt-BR')} ocorrências no total`}
+            subtitle={`${metrics.pedidosComOcorrencia.toLocaleString('pt-BR')} pedidos com ocorrência`}
             icon={MapPin}
             iconColor="text-pink-600"
             iconBg="bg-pink-100"
@@ -760,7 +777,159 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
         </Card>
       </section>
 
-      {/* ── Seção 9: Pedidos mais longos ─────────────────────────────────────── */}
+      {/* ── Seção 9: Análise de Ocorrências ─────────────────────────────────── */}
+      <section>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-orange-500" />
+          Análise de Ocorrências
+          {metrics.pedidosComOcorrencia > 0 && (
+            <span className="text-sm font-normal text-gray-500">
+              — {metrics.pedidosComOcorrencia.toLocaleString('pt-BR')} pedidos com ocorrência
+              ({metrics.totalOcorrencias.toLocaleString('pt-BR')} ocorrências no total)
+            </span>
+          )}
+        </h3>
+
+        {metrics.pedidosComOcorrencia === 0 ? (
+          <Card>
+            <CardContent className="py-10">
+              <div className="flex flex-col items-center text-gray-400">
+                <CheckCircle className="h-12 w-12 mb-2 text-green-400" />
+                <p className="text-sm">Nenhuma ocorrência registrada nos pedidos analisados</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Breakdown dos tipos de ocorrência */}
+            {metrics.tiposOcorrencia.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Tipos de Ocorrência (Última Ocorrência — Status)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {metrics.tiposOcorrencia.map(oc => {
+                      const pct =
+                        metrics.pedidosComOcorrencia > 0
+                          ? Math.round((oc.quantidade / metrics.pedidosComOcorrencia) * 100)
+                          : 0;
+                      return (
+                        <div key={oc.tipo}>
+                          <div className="flex justify-between text-sm mb-0.5">
+                            <span className="text-gray-700 truncate pr-2">{oc.tipo}</span>
+                            <span className="text-gray-500 shrink-0">
+                              {oc.quantidade} pedido{oc.quantidade !== 1 ? 's' : ''} ({pct}%)
+                            </span>
+                          </div>
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-orange-400 rounded-full"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Tabela de pedidos com ocorrências */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Pedidos com Ocorrências ({itensComOcorrencia.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left px-4 py-3 text-gray-600 font-medium">Pedido</th>
+                        <th className="text-left px-4 py-3 text-gray-600 font-medium">Motorista</th>
+                        <th className="text-left px-4 py-3 text-gray-600 font-medium">Município / UF</th>
+                        <th className="text-center px-3 py-3 text-gray-600 font-medium">Qtd</th>
+                        <th className="text-left px-4 py-3 text-gray-600 font-medium">Última Ocorrência (Status)</th>
+                        <th className="text-left px-4 py-3 text-gray-600 font-medium">Mensagem</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {itensOcorrenciaPaged.map(item => (
+                        <tr key={item.id} className="hover:bg-orange-50 transition-colors">
+                          <td className="px-4 py-3 font-mono text-xs text-gray-700">
+                            {item.pedido || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-800 max-w-[160px] truncate">
+                            {item.motorista || '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-gray-800">{item.municipio || '—'}</p>
+                            <p className="text-xs text-gray-400">{item.uf}</p>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+                              {item.quantidadeOcorrencias}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {item.ultimaOcorrenciaStatus ? (
+                              <span className="inline-block px-2 py-0.5 rounded text-xs bg-red-50 text-red-700 border border-red-200">
+                                {item.ultimaOcorrenciaStatus}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-600 max-w-[260px]">
+                            {item.ultimaOcorrenciaMensagem ? (
+                              <span title={item.ultimaOcorrenciaMensagem} className="line-clamp-2">
+                                {item.ultimaOcorrenciaMensagem}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalOcorrenciaPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-500">
+                      Página {ocorrenciaPage + 1} de {totalOcorrenciaPages}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setOcorrenciaPage(p => p - 1)}
+                        disabled={ocorrenciaPage === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setOcorrenciaPage(p => p + 1)}
+                        disabled={ocorrenciaPage >= totalOcorrenciaPages - 1}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </section>
+
+      {/* ── Seção 10: Pedidos mais longos ────────────────────────────────────── */}
       {pedidosMaisLongos.length > 0 && (
         <section>
           <Card>

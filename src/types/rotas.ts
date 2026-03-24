@@ -59,6 +59,7 @@ export interface RotasMetrics {
   percentualEntregues: number;
   percentualDificuldades: number;
   totalOcorrencias: number;
+  pedidosComOcorrencia: number;
   valorTotal: number;
   freteTotal: number;
   freteMedia: number;
@@ -66,6 +67,7 @@ export interface RotasMetrics {
   distanciaMedia: number;
   totalItens: number;
   tiposDificuldade: { tipo: string; quantidade: number }[];
+  tiposOcorrencia: { tipo: string; quantidade: number }[];
   palmeira: RotasUnidadeMetrics;
   penedo: RotasUnidadeMetrics;
 }
