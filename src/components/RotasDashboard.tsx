@@ -47,7 +47,8 @@ const COLORS = {
 };
 
 const ITEMS_PER_PAGE = 10;
-const OCORRENCIAS_PER_PAGE = 10;
+const OCORRENCIAS_PER_PAGE = 25;
+const CAROS_PER_PAGE = 20;
 
 // ─── Metric Card ────────────────────────────────────────────────────────────
 const MetricCard: React.FC<{
@@ -181,6 +182,9 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
     'total'
   );
   const [ocorrenciaPage, setOcorrenciaPage] = useState(0);
+  const [ocorrenciaFiltroMotorista, setOcorrenciaFiltroMotorista] = useState('');
+  const [ocorrenciaFiltroTipo, setOcorrenciaFiltroTipo] = useState('');
+  const [carosPage, setCarosPage] = useState(0);
 
   // Pie chart data
   const pieData = useMemo(
@@ -250,7 +254,7 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
     [motoristas]
   );
 
-  // Pedidos com ocorrências (ordenados por quantidade de ocorrências desc)
+  // Pedidos com ocorrências — lista base ordenada por qtd desc
   const itensComOcorrencia = useMemo(
     () =>
       items
@@ -259,10 +263,53 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
     [items]
   );
 
-  const totalOcorrenciaPages = Math.ceil(itensComOcorrencia.length / OCORRENCIAS_PER_PAGE);
-  const itensOcorrenciaPaged = itensComOcorrencia.slice(
+  // Opções únicas para os selects de filtro
+  const motoristasComOcorrencia = useMemo(
+    () => [...new Set(itensComOcorrencia.map(i => i.motorista).filter(Boolean))].sort(),
+    [itensComOcorrencia]
+  );
+  const tiposOcorrenciaUnicos = useMemo(
+    () => [...new Set(itensComOcorrencia.map(i => i.ultimaOcorrenciaStatus).filter(Boolean))].sort(),
+    [itensComOcorrencia]
+  );
+
+  // Lista filtrada
+  const itensComOcorrenciaFiltrados = useMemo(() => {
+    let lista = itensComOcorrencia;
+    if (ocorrenciaFiltroMotorista) lista = lista.filter(i => i.motorista === ocorrenciaFiltroMotorista);
+    if (ocorrenciaFiltroTipo) lista = lista.filter(i => i.ultimaOcorrenciaStatus === ocorrenciaFiltroTipo);
+    return lista;
+  }, [itensComOcorrencia, ocorrenciaFiltroMotorista, ocorrenciaFiltroTipo]);
+
+  const totalOcorrenciaPages = Math.ceil(itensComOcorrenciaFiltrados.length / OCORRENCIAS_PER_PAGE);
+  const itensOcorrenciaPaged = itensComOcorrenciaFiltrados.slice(
     ocorrenciaPage * OCORRENCIAS_PER_PAGE,
     (ocorrenciaPage + 1) * OCORRENCIAS_PER_PAGE
+  );
+
+  // Top pedidos mais caros
+  const pedidosMaisCaros = useMemo(
+    () =>
+      [...items]
+        .filter(i => i.valorTotal > 0)
+        .sort((a, b) => b.valorTotal - a.valorTotal)
+        .slice(0, 50), // paginamos em 20 por vez
+    [items]
+  );
+  const totalCarosPages = Math.ceil(pedidosMaisCaros.length / CAROS_PER_PAGE);
+  const pedidosCarosPaged = pedidosMaisCaros.slice(
+    carosPage * CAROS_PER_PAGE,
+    (carosPage + 1) * CAROS_PER_PAGE
+  );
+
+  // Motoristas ordenados por valor total transportado
+  const motoristasporValor = useMemo(
+    () =>
+      [...motoristas]
+        .filter(m => m.valorTotal > 0)
+        .sort((a, b) => b.valorTotal - a.valorTotal)
+        .slice(0, 10),
+    [motoristas]
   );
 
   return (
@@ -839,9 +886,51 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
             {/* Tabela de pedidos com ocorrências */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Pedidos com Ocorrências ({itensComOcorrencia.length})
-                </CardTitle>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CardTitle className="text-base">
+                      Pedidos com Ocorrências ({itensComOcorrenciaFiltrados.length}
+                      {itensComOcorrenciaFiltrados.length !== itensComOcorrencia.length && (
+                        <span className="text-gray-400 font-normal"> de {itensComOcorrencia.length}</span>
+                      )}
+                      )
+                    </CardTitle>
+                    {(ocorrenciaFiltroMotorista || ocorrenciaFiltroTipo) && (
+                      <button
+                        onClick={() => {
+                          setOcorrenciaFiltroMotorista('');
+                          setOcorrenciaFiltroTipo('');
+                          setOcorrenciaPage(0);
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700 hover:underline"
+                      >
+                        Limpar filtros
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      value={ocorrenciaFiltroMotorista}
+                      onChange={e => { setOcorrenciaFiltroMotorista(e.target.value); setOcorrenciaPage(0); }}
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    >
+                      <option value="">Todos os motoristas</option>
+                      {motoristasComOcorrencia.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={ocorrenciaFiltroTipo}
+                      onChange={e => { setOcorrenciaFiltroTipo(e.target.value); setOcorrenciaPage(0); }}
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    >
+                      <option value="">Todos os tipos</option>
+                      {tiposOcorrenciaUnicos.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -857,6 +946,13 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
+                      {itensOcorrenciaPaged.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">
+                            Nenhum pedido encontrado com os filtros selecionados
+                          </td>
+                        </tr>
+                      )}
                       {itensOcorrenciaPaged.map(item => (
                         <tr key={item.id} className="hover:bg-orange-50 transition-colors">
                           <td className="px-4 py-3 font-mono text-xs text-gray-700">
@@ -929,7 +1025,146 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
         )}
       </section>
 
-      {/* ── Seção 10: Pedidos mais longos ────────────────────────────────────── */}
+      {/* ── Seção 10: Pedidos mais caros ─────────────────────────────────────── */}
+      {pedidosMaisCaros.length > 0 && (
+        <section>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-indigo-500" />
+            Pedidos Mais Caros
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* Ranking de motoristas por valor transportado */}
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-5 w-5 text-indigo-500" />
+                  Motoristas por Valor Transportado
+                </CardTitle>
+                <p className="text-xs text-gray-500 mt-0.5">Top 10 — soma de todos os pedidos</p>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-gray-100">
+                  {motoristasporValor.map((m, i) => (
+                    <div
+                      key={m.nome}
+                      className="flex items-center justify-between px-4 py-3 hover:bg-indigo-50"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={cn(
+                            'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                            i === 0
+                              ? 'bg-indigo-500 text-white'
+                              : i === 1
+                              ? 'bg-indigo-200 text-indigo-700'
+                              : i === 2
+                              ? 'bg-indigo-100 text-indigo-600'
+                              : 'bg-gray-100 text-gray-500'
+                          )}
+                        >
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{m.nome}</p>
+                          <p className="text-xs text-gray-400">{m.totalPedidos} pedidos</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 ml-2">
+                        <p className="text-sm font-semibold text-indigo-600">
+                          {formatCurrencyBR(m.valorTotal)}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          méd. {formatCurrencyBR(m.valorTotal / m.totalPedidos)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tabela dos pedidos mais caros */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Top {pedidosMaisCaros.length} Pedidos por Valor
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left px-3 py-3 text-gray-600 font-medium">#</th>
+                        <th className="text-left px-3 py-3 text-gray-600 font-medium">Pedido</th>
+                        <th className="text-left px-3 py-3 text-gray-600 font-medium">Município / UF</th>
+                        <th className="text-left px-3 py-3 text-gray-600 font-medium">Motorista</th>
+                        <th className="text-center px-3 py-3 text-gray-600 font-medium">Status</th>
+                        <th className="text-right px-3 py-3 text-gray-600 font-medium">Valor Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {pedidosCarosPaged.map((item, i) => (
+                        <tr key={item.id} className="hover:bg-indigo-50 transition-colors">
+                          <td className="px-3 py-3 text-gray-400 text-xs">
+                            {carosPage * CAROS_PER_PAGE + i + 1}
+                          </td>
+                          <td className="px-3 py-3 font-mono text-xs text-gray-700">
+                            {item.pedido || '—'}
+                          </td>
+                          <td className="px-3 py-3">
+                            <p className="font-medium text-gray-800">{item.municipio || '—'}</p>
+                            <p className="text-xs text-gray-400">{item.uf}</p>
+                          </td>
+                          <td className="px-3 py-3 text-gray-700 max-w-[160px] truncate text-xs">
+                            {item.motorista || '—'}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <StatusBadge status={item.status} />
+                          </td>
+                          <td className="px-3 py-3 text-right font-semibold text-indigo-600">
+                            {formatCurrencyBR(item.valorTotal)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalCarosPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-500">
+                      Página {carosPage + 1} de {totalCarosPages}
+                      {' '}· mostrando {pedidosCarosPaged.length} de {pedidosMaisCaros.length}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCarosPage(p => p - 1)}
+                        disabled={carosPage === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCarosPage(p => p + 1)}
+                        disabled={carosPage >= totalCarosPages - 1}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      )}
+
+      {/* ── Seção 11: Pedidos mais longos ────────────────────────────────────── */}
       {pedidosMaisLongos.length > 0 && (
         <section>
           <Card>
