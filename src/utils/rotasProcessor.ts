@@ -184,7 +184,10 @@ const calcularMotoristasStats = (items: RotaItem[]): MotoristaStats[] => {
     else if (item.status === 'nao-entregue') s.naoEntregues++;
     else if (item.status === 'retirado') s.retirados++;
     s.totalOcorrencias += item.quantidadeOcorrencias;
-    s.distanciaTotal += item.distanciaMetros;
+    if (item.distanciaMetros > 0) {
+      s.distanciaTotal += item.distanciaMetros;
+      (s as any)._pedidosComDistancia = ((s as any)._pedidosComDistancia || 0) + 1;
+    }
     s.freteTotal += item.precoFrete;
     s.valorTotal += item.valorTotal;
     const exp = item.expedidor.trim();
@@ -196,7 +199,10 @@ const calcularMotoristasStats = (items: RotaItem[]): MotoristaStats[] => {
       ...s,
       taxaSucesso:
         s.totalPedidos > 0 ? Math.round((s.entregues / s.totalPedidos) * 100) : 0,
-      distanciaMedia: s.totalPedidos > 0 ? s.distanciaTotal / s.totalPedidos : 0,
+      distanciaMedia:
+        (s as any)._pedidosComDistancia > 0
+          ? s.distanciaTotal / (s as any)._pedidosComDistancia
+          : 0,
     }))
     .sort((a, b) => b.totalPedidos - a.totalPedidos);
 };
