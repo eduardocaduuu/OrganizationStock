@@ -1,4 +1,7 @@
-export type ExcelTemplate = 'auto' | 'legacy' | 'disponivel' | 'setores' | 'pedidos';
+export type ExcelTemplate = 'auto' | 'legacy' | 'disponivel' | 'setores' | 'pedidos' | 'rotas';
+
+// Re-exportar tipos de rotas
+export * from './rotas';
 
 // Re-exportar tipos de pedidos
 export * from './pedidos';

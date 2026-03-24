@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, X, Package, MapPin, Building2, Clock, Info } from 'lucide-react';
+import { Upload, FileSpreadsheet, X, Package, MapPin, Building2, Clock, Info, Truck } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Card, CardContent } from './ui/Card';
 import { ExcelTemplate } from '../types';
@@ -95,6 +95,27 @@ const cardInfoData: Record<string, CardInfo> = {
       'Exportar',
     ],
   },
+  rotas: {
+    title: 'Análise de Rotas',
+    description: 'Analisa pedidos de entrega: performance de motoristas, distâncias, dificuldades e preço de frete.',
+    features: [
+      'Quantidade e valor total de pedidos',
+      'Taxa de sucesso e dificuldades por motorista',
+      'Motoristas com maiores distâncias percorridas',
+      'Pedidos com maiores distâncias de entrega',
+      'Motoristas com mais dificuldades de entrega',
+      'Análise por unidade (Palmeira/Penedo)',
+      'Preço de frete total e médio',
+    ],
+    path: [
+      'Acesse o sistema de logística/roteamento',
+      'Exporte o relatório de pedidos com as colunas de rota',
+      'Inclua: Pedido, Nome, Status, Motorista, Expedidor',
+      'Inclua: Distância em metros, Preço do frete',
+      'Inclua: Ocorrências e Quantidade de Ocorrências',
+      'Salve como .xlsx ou .csv',
+    ],
+  },
 };
 
 // Modal de Informações
@@ -171,6 +192,7 @@ interface UploadCardProps {
   onClearFile: () => void;
   inputId: string;
   onInfoClick: () => void;
+  accept?: string;
 }
 
 const UploadCard: React.FC<UploadCardProps> = ({
@@ -186,6 +208,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
   onClearFile,
   inputId,
   onInfoClick,
+  accept = '.xlsx,.xls',
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -207,13 +230,16 @@ const UploadCard: React.FC<UploadCardProps> = ({
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      const name = file.name.toLowerCase();
+      const acceptedExts = accept.split(',').map(s => s.trim());
+      const isValid = acceptedExts.some(ext => name.endsWith(ext));
+      if (isValid) {
         onFileSelect(file, template);
       } else {
-        alert('Por favor, selecione um arquivo Excel (.xlsx ou .xls)');
+        alert(`Por favor, selecione um arquivo nos formatos: ${accept}`);
       }
     }
-  }, [onFileSelect, template]);
+  }, [onFileSelect, template, accept]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -263,7 +289,7 @@ const UploadCard: React.FC<UploadCardProps> = ({
           type="file"
           id={inputId}
           className="hidden"
-          accept=".xlsx,.xls"
+          accept={accept}
           onChange={handleChange}
           disabled={loading}
         />
@@ -345,7 +371,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, loading = false }
         <p className="text-gray-500">Selecione o tipo de relatório que deseja importar</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <UploadCard
           title="Estoque Disponível"
           description="Planilha com colunas: Código Material, Nome Material, Total - Disponível"
@@ -405,10 +431,26 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, loading = false }
           inputId="file-upload-pedidos"
           onInfoClick={() => setInfoModalOpen('pedidos')}
         />
+
+        <UploadCard
+          title="Análise de Rotas"
+          description="Analisa entregas: motoristas, distâncias, dificuldades e frete (.xlsx ou .csv)"
+          icon={Truck}
+          iconColor="text-red-600"
+          iconBgColor="bg-red-100"
+          template="rotas"
+          selectedFile={activeTemplate === 'rotas' ? selectedFile : null}
+          loading={loading && activeTemplate === 'rotas'}
+          onFileSelect={handleFileSelect}
+          onClearFile={clearFile}
+          inputId="file-upload-rotas"
+          onInfoClick={() => setInfoModalOpen('rotas')}
+          accept=".xlsx,.xls,.csv"
+        />
       </div>
 
       <p className="text-xs text-gray-400 text-center">
-        Formatos suportados: .xlsx, .xls
+        Formatos suportados: .xlsx, .xls (e .csv para Análise de Rotas)
       </p>
 
       {/* Modal de Informações */}

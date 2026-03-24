@@ -6,17 +6,19 @@ import StockTable from './components/StockTable';
 import MissingAddressModal from './components/MissingAddressModal';
 import SetoresDashboard from './components/SetoresDashboard';
 import PedidosDashboard from './components/PedidosDashboard';
+import RotasDashboard from './components/RotasDashboard';
 import Alert from './components/ui/Alert';
-import { ProcessedItem, DashboardMetrics, ExcelTemplate, SetorItem, SetorMetrics, PedidoItem, PedidosMetrics, UnidadeMetrics, DistribuicaoAtraso } from './types';
+import { ProcessedItem, DashboardMetrics, ExcelTemplate, SetorItem, SetorMetrics, PedidoItem, PedidosMetrics, UnidadeMetrics, DistribuicaoAtraso, RotaItem, RotasMetrics, MotoristaStats } from './types';
 import { processExcelFile, processSetoresFile } from './utils/excelProcessor';
 import { processPedidosFile } from './utils/pedidosProcessor';
+import { processRotasFile } from './utils/rotasProcessor';
 
 function App() {
   const [items, setItems] = useState<ProcessedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'positivo' | 'zerado' | 'negativo' | 'duplicado' | 'sem-endereco'>('all');
-  const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel' | 'setores' | 'pedidos'>('legacy');
+  const [detectedTemplate, setDetectedTemplate] = useState<'legacy' | 'disponivel' | 'setores' | 'pedidos' | 'rotas'>('legacy');
   const [showMissingAddressModal, setShowMissingAddressModal] = useState(false);
 
   // Estado para análise de setores
@@ -32,6 +34,11 @@ function App() {
   const [distribuicaoAtraso, setDistribuicaoAtraso] = useState<DistribuicaoAtraso[]>([]);
   const [distribuicaoAtrasoPalmeira, setDistribuicaoAtrasoPalmeira] = useState<DistribuicaoAtraso[]>([]);
   const [distribuicaoAtrasoPenedo, setDistribuicaoAtrasoPenedo] = useState<DistribuicaoAtraso[]>([]);
+
+  // Estado para análise de rotas
+  const [rotaItems, setRotaItems] = useState<RotaItem[]>([]);
+  const [rotaMetrics, setRotaMetrics] = useState<RotasMetrics | null>(null);
+  const [rotaMotoristas, setRotaMotoristas] = useState<MotoristaStats[]>([]);
 
   const hasNoAddress = (item: ProcessedItem): boolean => {
     const estacaoVazia = !item.estacao || item.estacao === '-' || item.estacao.trim() === '';
@@ -99,6 +106,9 @@ function App() {
     setDistribuicaoAtraso([]);
     setDistribuicaoAtrasoPalmeira([]);
     setDistribuicaoAtrasoPenedo([]);
+    setRotaItems([]);
+    setRotaMetrics(null);
+    setRotaMotoristas([]);
 
     try {
       if (template === 'setores') {
@@ -117,6 +127,12 @@ function App() {
         setDistribuicaoAtrasoPalmeira(result.distribuicaoAtrasoPalmeira);
         setDistribuicaoAtrasoPenedo(result.distribuicaoAtrasoPenedo);
         setDetectedTemplate('pedidos');
+      } else if (template === 'rotas') {
+        const result = await processRotasFile(file);
+        setRotaItems(result.items);
+        setRotaMetrics(result.metrics);
+        setRotaMotoristas(result.motoristas);
+        setDetectedTemplate('rotas');
       } else {
         const result = await processExcelFile(file, template);
         setItems(result.items);
@@ -173,6 +189,23 @@ function App() {
           </section>
         )}
 
+        {/* Análise de Rotas */}
+        {detectedTemplate === 'rotas' && rotaItems.length > 0 && rotaMetrics && (
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Análise de Rotas
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              {rotaItems.length.toLocaleString('pt-BR')} pedidos analisados · {rotaMotoristas.length} motoristas
+            </p>
+            <RotasDashboard
+              items={rotaItems}
+              metrics={rotaMetrics}
+              motoristas={rotaMotoristas}
+            />
+          </section>
+        )}
+
         {/* Análise de Pedidos */}
         {detectedTemplate === 'pedidos' && pedidoItems.length > 0 && pedidoMetrics && pedidoMetricsPalmeira && pedidoMetricsPenedo && (
           <section>
@@ -195,7 +228,7 @@ function App() {
         )}
 
         {/* Dashboard & Table */}
-        {detectedTemplate !== 'setores' && detectedTemplate !== 'pedidos' && items.length > 0 && (
+        {detectedTemplate !== 'setores' && detectedTemplate !== 'pedidos' && detectedTemplate !== 'rotas' && items.length > 0 && (
           <>
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
@@ -250,7 +283,7 @@ function App() {
         )}
 
         {/* Empty State */}
-        {!loading && items.length === 0 && setorItems.length === 0 && pedidoItems.length === 0 && !error && (
+        {!loading && items.length === 0 && setorItems.length === 0 && pedidoItems.length === 0 && rotaItems.length === 0 && !error && (
           <div className="text-center py-16">
             <div className="inline-block p-6 bg-primary-50 rounded-full mb-4">
               <svg
