@@ -108,12 +108,12 @@ const cardInfoData: Record<string, CardInfo> = {
       'Preço de frete total e médio',
     ],
     path: [
-      'Acesse o sistema de logística/roteamento',
-      'Exporte o relatório de pedidos com as colunas de rota',
-      'Inclua: Pedido, Nome, Status, Motorista, Expedidor',
-      'Inclua: Distância em metros, Preço do frete',
-      'Inclua: Ocorrências e Quantidade de Ocorrências',
-      'Salve como .xlsx ou .csv',
+      'Abrir plataforma logística',
+      'Clicar em Período',
+      'Escolher a opção "Escolher Período"',
+      'Pôr a data desejada de início e fim',
+      'Clicar em Filtrar',
+      'Clicar em Exportar',
     ],
   },
 };
