@@ -35,10 +35,10 @@ const classifyStatus = (status: string): RotaStatus | null => {
   // Cliente retirou no espaço do revendedor
   if (s === 'retirado') return 'retirado';
 
-  // Todos os demais = dificuldade (Carga recusada, Destinatário ausente,
+  // Todos os demais = não entregue (Carga recusada, Destinatário ausente,
   // Destinatário desconhecido, Devolvido, Difícil acesso, Endereço não
   // localizado, Extravio confirmado, Não visitado, etc.)
-  return 'dificuldade';
+  return 'nao-entregue';
 };
 
 const getUnidade = (expedidor: string): RotaUnidade => {
@@ -77,7 +77,7 @@ const emptyUnidade = (nome: string): RotasUnidadeMetrics => ({
   nome,
   totalPedidos: 0,
   totalEntregues: 0,
-  totalDificuldades: 0,
+  totalNaoEntregues: 0,
   totalRetirados: 0,
   valorTotal: 0,
   freteTotal: 0,
@@ -86,15 +86,9 @@ const emptyUnidade = (nome: string): RotasUnidadeMetrics => ({
 });
 
 const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
-  let totalEntregues = 0,
-    totalDificuldades = 0,
-    totalRetirados = 0;
-  let totalOcorrencias = 0,
-    valorTotal = 0,
-    freteTotal = 0;
-  let distanciaTotal = 0,
-    totalItens = 0;
-  const tiposDifMap = new Map<string, number>();
+  let totalEntregues = 0, totalNaoEntregues = 0, totalRetirados = 0;
+  let totalOcorrencias = 0, valorTotal = 0, freteTotal = 0;
+  let distanciaTotal = 0, totalItens = 0;
   const tiposOcorrMap = new Map<string, number>();
   let pedidosComOcorrencia = 0;
 
@@ -103,11 +97,8 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
 
   items.forEach(item => {
     if (item.status === 'entregue') totalEntregues++;
-    else if (item.status === 'dificuldade') {
-      totalDificuldades++;
-      const tipo = item.statusOriginal || 'Desconhecido';
-      tiposDifMap.set(tipo, (tiposDifMap.get(tipo) || 0) + 1);
-    } else if (item.status === 'retirado') totalRetirados++;
+    else if (item.status === 'nao-entregue') totalNaoEntregues++;
+    else if (item.status === 'retirado') totalRetirados++;
 
     totalOcorrencias += item.quantidadeOcorrencias;
 
@@ -131,7 +122,7 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
     let dist = 0;
     unitItems.forEach(i => {
       if (i.status === 'entregue') m.totalEntregues++;
-      else if (i.status === 'dificuldade') m.totalDificuldades++;
+      else if (i.status === 'nao-entregue') m.totalNaoEntregues++;
       else if (i.status === 'retirado') m.totalRetirados++;
       m.valorTotal += i.valorTotal;
       m.freteTotal += i.precoFrete;
@@ -142,10 +133,6 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
     return m;
   };
 
-  const tiposDificuldade = Array.from(tiposDifMap.entries())
-    .map(([tipo, quantidade]) => ({ tipo, quantidade }))
-    .sort((a, b) => b.quantidade - a.quantidade);
-
   const tiposOcorrencia = Array.from(tiposOcorrMap.entries())
     .map(([tipo, quantidade]) => ({ tipo, quantidade }))
     .sort((a, b) => b.quantidade - a.quantidade);
@@ -153,10 +140,9 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
   return {
     totalPedidos: total,
     totalEntregues,
-    totalDificuldades,
+    totalNaoEntregues,
     totalRetirados,
     percentualEntregues: total > 0 ? Math.round((totalEntregues / total) * 100) : 0,
-    percentualDificuldades: total > 0 ? Math.round((totalDificuldades / total) * 100) : 0,
     totalOcorrencias,
     pedidosComOcorrencia,
     valorTotal,
@@ -165,7 +151,6 @@ const calcularMetrics = (items: RotaItem[]): RotasMetrics => {
     distanciaTotal,
     distanciaMedia: total > 0 ? distanciaTotal / total : 0,
     totalItens,
-    tiposDificuldade,
     tiposOcorrencia,
     palmeira: calcUnidade(palmItems, 'Palmeira dos Índios'),
     penedo: calcUnidade(penItems, 'Penedo'),
@@ -182,10 +167,9 @@ const calcularMotoristasStats = (items: RotaItem[]): MotoristaStats[] => {
         nome: key,
         totalPedidos: 0,
         entregues: 0,
-        dificuldades: 0,
+        naoEntregues: 0,
         retirados: 0,
         taxaSucesso: 0,
-        taxaDificuldade: 0,
         distanciaTotal: 0,
         distanciaMedia: 0,
         totalOcorrencias: 0,
@@ -197,7 +181,7 @@ const calcularMotoristasStats = (items: RotaItem[]): MotoristaStats[] => {
     const s = map.get(key)!;
     s.totalPedidos++;
     if (item.status === 'entregue') s.entregues++;
-    else if (item.status === 'dificuldade') s.dificuldades++;
+    else if (item.status === 'nao-entregue') s.naoEntregues++;
     else if (item.status === 'retirado') s.retirados++;
     s.totalOcorrencias += item.quantidadeOcorrencias;
     s.distanciaTotal += item.distanciaMetros;
@@ -212,8 +196,6 @@ const calcularMotoristasStats = (items: RotaItem[]): MotoristaStats[] => {
       ...s,
       taxaSucesso:
         s.totalPedidos > 0 ? Math.round((s.entregues / s.totalPedidos) * 100) : 0,
-      taxaDificuldade:
-        s.totalPedidos > 0 ? Math.round((s.dificuldades / s.totalPedidos) * 100) : 0,
       distanciaMedia: s.totalPedidos > 0 ? s.distanciaTotal / s.totalPedidos : 0,
     }))
     .sort((a, b) => b.totalPedidos - a.totalPedidos);

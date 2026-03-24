@@ -81,7 +81,7 @@ const UnidadeCard: React.FC<{
   nome: string;
   totalPedidos: number;
   totalEntregues: number;
-  totalDificuldades: number;
+  totalNaoEntregues: number;
   totalRetirados: number;
   valorTotal: number;
   freteTotal: number;
@@ -91,7 +91,7 @@ const UnidadeCard: React.FC<{
   nome,
   totalPedidos,
   totalEntregues,
-  totalDificuldades,
+  totalNaoEntregues,
   totalRetirados,
   valorTotal,
   freteTotal,
@@ -126,8 +126,8 @@ const UnidadeCard: React.FC<{
             <p className="font-semibold text-green-600">{totalEntregues.toLocaleString('pt-BR')}</p>
           </div>
           <div>
-            <p className="text-gray-500">Dificuldades</p>
-            <p className="font-semibold text-red-600">{totalDificuldades.toLocaleString('pt-BR')}</p>
+            <p className="text-gray-500">Não Entregues</p>
+            <p className="font-semibold text-red-600">{totalNaoEntregues.toLocaleString('pt-BR')}</p>
           </div>
           <div>
             <p className="text-gray-500">Retirados</p>
@@ -160,11 +160,11 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
         Entregue
       </span>
     );
-  if (status === 'dificuldade')
+  if (status === 'nao-entregue')
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
         <AlertTriangle className="h-3 w-3" />
-        Dificuldade
+        Não Entregue
       </span>
     );
   return (
@@ -178,9 +178,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoristas }) => {
   const [motoristaPage, setMotoristaPage] = useState(0);
-  const [sortMotoristas, setSortMotoristas] = useState<'total' | 'dificuldade' | 'distancia'>(
-    'total'
-  );
+  const [sortMotoristas, setSortMotoristas] = useState<'total' | 'distancia'>('total');
   const [ocorrenciaPage, setOcorrenciaPage] = useState(0);
   const [ocorrenciaFiltroMotorista, setOcorrenciaFiltroMotorista] = useState('');
   const [ocorrenciaFiltroTipo, setOcorrenciaFiltroTipo] = useState('');
@@ -190,7 +188,7 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
   const pieData = useMemo(
     () => [
       { name: 'Entregues', value: metrics.totalEntregues, color: COLORS.entregue },
-      { name: 'Dificuldades', value: metrics.totalDificuldades, color: COLORS.dificuldade },
+      { name: 'Não Entregues', value: metrics.totalNaoEntregues, color: COLORS.dificuldade },
       { name: 'Retirados', value: metrics.totalRetirados, color: COLORS.retirado },
     ].filter(d => d.value > 0),
     [metrics]
@@ -203,9 +201,9 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
         .sort((a, b) => b.entregues - a.entregues)
         .slice(0, 10)
         .map(m => ({
-          nome: m.nome.split(' ')[0], // só primeiro nome para o gráfico
+          nome: m.nome.split(' ')[0],
           Entregues: m.entregues,
-          Dificuldades: m.dificuldades,
+          'Não Entregues': m.naoEntregues,
         })),
     [motoristas]
   );
@@ -213,8 +211,7 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
   // Motoristas ordenados pela seleção
   const motoristasSorted = useMemo(() => {
     const copy = [...motoristas];
-    if (sortMotoristas === 'dificuldade') copy.sort((a, b) => b.dificuldades - a.dificuldades);
-    else if (sortMotoristas === 'distancia') copy.sort((a, b) => b.distanciaMedia - a.distanciaMedia);
+    if (sortMotoristas === 'distancia') copy.sort((a, b) => b.distanciaMedia - a.distanciaMedia);
     return copy;
   }, [motoristas, sortMotoristas]);
 
@@ -232,16 +229,6 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
         .sort((a, b) => b.distanciaMetros - a.distanciaMetros)
         .slice(0, 15),
     [items]
-  );
-
-  // Top 10 motoristas com mais dificuldades (absoluto)
-  const motoristasComDificuldade = useMemo(
-    () =>
-      [...motoristas]
-        .filter(m => m.dificuldades > 0)
-        .sort((a, b) => b.dificuldades - a.dificuldades)
-        .slice(0, 10),
-    [motoristas]
   );
 
   // Top 10 motoristas com maiores distâncias médias
@@ -341,15 +328,6 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
             borderColor="border-l-green-500"
           />
           <MetricCard
-            title="Com Dificuldades"
-            value={metrics.totalDificuldades.toLocaleString('pt-BR')}
-            subtitle={`${metrics.percentualDificuldades}% dos pedidos`}
-            icon={AlertTriangle}
-            iconColor="text-red-600"
-            iconBg="bg-red-100"
-            borderColor="border-l-red-500"
-          />
-          <MetricCard
             title="Retirados pelo Cliente"
             value={metrics.totalRetirados.toLocaleString('pt-BR')}
             subtitle="Cliente buscou no revendedor"
@@ -413,90 +391,39 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
           <TrendingUp className="h-5 w-5 text-gray-500" />
           Distribuição de Status
         </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Pie chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Status dos Pedidos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [
-                      Number(value).toLocaleString('pt-BR'),
-                      'Pedidos',
-                    ]}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Tipos de dificuldade */}
-          {metrics.tiposDificuldade.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Tipos de Dificuldade</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {metrics.tiposDificuldade.slice(0, 8).map(td => {
-                    const pct =
-                      metrics.totalDificuldades > 0
-                        ? Math.round((td.quantidade / metrics.totalDificuldades) * 100)
-                        : 0;
-                    return (
-                      <div key={td.tipo}>
-                        <div className="flex justify-between text-sm mb-0.5">
-                          <span className="text-gray-700 truncate pr-2">{td.tipo}</span>
-                          <span className="text-gray-500 shrink-0">
-                            {td.quantidade} ({pct}%)
-                          </span>
-                        </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-red-400 rounded-full"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Tipos de Dificuldade</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-                  <CheckCircle className="h-10 w-10 mb-2 text-green-400" />
-                  <p className="text-sm">Nenhuma dificuldade registrada</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Status dos Pedidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  dataKey="value"
+                  label={({ name, percent }) =>
+                    `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                  }
+                  labelLine={false}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value) => [
+                    Number(value).toLocaleString('pt-BR'),
+                    'Pedidos',
+                  ]}
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </section>
 
       {/* ── Seção 4: Top 10 Entregas por Motorista (gráfico) ─────────────────── */}
@@ -527,7 +454,7 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="Entregues" fill={COLORS.entregue} radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="Dificuldades" fill={COLORS.dificuldade} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Não Entregues" fill={COLORS.dificuldade} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -546,7 +473,7 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
             nome={metrics.palmeira.nome}
             totalPedidos={metrics.palmeira.totalPedidos}
             totalEntregues={metrics.palmeira.totalEntregues}
-            totalDificuldades={metrics.palmeira.totalDificuldades}
+            totalNaoEntregues={metrics.palmeira.totalNaoEntregues}
             totalRetirados={metrics.palmeira.totalRetirados}
             valorTotal={metrics.palmeira.valorTotal}
             freteTotal={metrics.palmeira.freteTotal}
@@ -557,7 +484,7 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
             nome={metrics.penedo.nome}
             totalPedidos={metrics.penedo.totalPedidos}
             totalEntregues={metrics.penedo.totalEntregues}
-            totalDificuldades={metrics.penedo.totalDificuldades}
+            totalNaoEntregues={metrics.penedo.totalNaoEntregues}
             totalRetirados={metrics.penedo.totalRetirados}
             valorTotal={metrics.penedo.valorTotal}
             freteTotal={metrics.penedo.freteTotal}
@@ -588,17 +515,6 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
                   )}
                 >
                   Total
-                </button>
-                <button
-                  onClick={() => { setSortMotoristas('dificuldade'); setMotoristaPage(0); }}
-                  className={cn(
-                    'px-3 py-1 rounded-full border text-xs font-medium transition-colors',
-                    sortMotoristas === 'dificuldade'
-                      ? 'bg-red-600 text-white border-red-600'
-                      : 'border-gray-300 text-gray-600 hover:border-red-400'
-                  )}
-                >
-                  Dificuldades
                 </button>
                 <button
                   onClick={() => { setSortMotoristas('distancia'); setMotoristaPage(0); }}
@@ -712,10 +628,8 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
         </Card>
       </section>
 
-      {/* ── Seção 7 + 8: Rankings side by side ──────────────────────────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Motoristas com maiores distâncias médias */}
+      {/* ── Seção 7: Motoristas com maiores distâncias ───────────────────────── */}
+      <section>
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -762,55 +676,6 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
           </CardContent>
         </Card>
 
-        {/* Motoristas com mais dificuldades */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-500" />
-              Motoristas com Mais Dificuldades
-            </CardTitle>
-            <p className="text-xs text-gray-500 mt-0.5">Ordenado por quantidade absoluta</p>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-gray-100">
-              {motoristasComDificuldade.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                  <CheckCircle className="h-10 w-10 mb-2 text-green-400" />
-                  <p className="text-sm">Nenhuma dificuldade registrada</p>
-                </div>
-              ) : (
-                motoristasComDificuldade.map((m, i) => (
-                  <div
-                    key={m.nome}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span
-                        className={cn(
-                          'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
-                          i === 0
-                            ? 'bg-red-500 text-white'
-                            : 'bg-gray-100 text-gray-500'
-                        )}
-                      >
-                        {i + 1}
-                      </span>
-                      <p className="text-sm font-medium text-gray-900 truncate">{m.nome}</p>
-                    </div>
-                    <div className="text-right shrink-0 ml-2">
-                      <p className="text-sm font-semibold text-red-600">
-                        {m.dificuldades} dific.
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {m.taxaDificuldade}% dos pedidos
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </section>
 
       {/* ── Seção 9: Análise de Ocorrências ─────────────────────────────────── */}

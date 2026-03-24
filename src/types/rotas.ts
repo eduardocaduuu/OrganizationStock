@@ -1,4 +1,4 @@
-export type RotaStatus = 'entregue' | 'dificuldade' | 'retirado';
+export type RotaStatus = 'entregue' | 'nao-entregue' | 'retirado';
 export type RotaUnidade = 'palmeira' | 'penedo' | 'desconhecida';
 
 export interface RotaItem {
@@ -27,10 +27,9 @@ export interface MotoristaStats {
   nome: string;
   totalPedidos: number;
   entregues: number;
-  dificuldades: number;
+  naoEntregues: number;
   retirados: number;
   taxaSucesso: number;
-  taxaDificuldade: number;
   distanciaTotal: number;
   distanciaMedia: number;
   totalOcorrencias: number;
@@ -43,7 +42,7 @@ export interface RotasUnidadeMetrics {
   nome: string;
   totalPedidos: number;
   totalEntregues: number;
-  totalDificuldades: number;
+  totalNaoEntregues: number;
   totalRetirados: number;
   valorTotal: number;
   freteTotal: number;
@@ -54,10 +53,9 @@ export interface RotasUnidadeMetrics {
 export interface RotasMetrics {
   totalPedidos: number;
   totalEntregues: number;
-  totalDificuldades: number;
+  totalNaoEntregues: number;
   totalRetirados: number;
   percentualEntregues: number;
-  percentualDificuldades: number;
   totalOcorrencias: number;
   pedidosComOcorrencia: number;
   valorTotal: number;
@@ -66,7 +64,6 @@ export interface RotasMetrics {
   distanciaTotal: number;
   distanciaMedia: number;
   totalItens: number;
-  tiposDificuldade: { tipo: string; quantidade: number }[];
   tiposOcorrencia: { tipo: string; quantidade: number }[];
   palmeira: RotasUnidadeMetrics;
   penedo: RotasUnidadeMetrics;
