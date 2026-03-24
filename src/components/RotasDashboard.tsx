@@ -3,11 +3,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Legend,
@@ -192,20 +187,6 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
       { name: 'Retirados', value: metrics.totalRetirados, color: COLORS.retirado },
     ].filter(d => d.value > 0),
     [metrics]
-  );
-
-  // Top 10 motoristas para o gráfico de barras
-  const topMotoristasBar = useMemo(
-    () =>
-      [...motoristas]
-        .sort((a, b) => b.entregues - a.entregues)
-        .slice(0, 10)
-        .map(m => ({
-          nome: m.nome.split(' ')[0],
-          Entregues: m.entregues,
-          'Não Entregues': m.naoEntregues,
-        })),
-    [motoristas]
   );
 
   // Motoristas ordenados pela seleção
@@ -426,41 +407,6 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
         </Card>
       </section>
 
-      {/* ── Seção 4: Top 10 Entregas por Motorista (gráfico) ─────────────────── */}
-      {topMotoristasBar.length > 0 && (
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-5 w-5 text-gray-500" />
-                Top 10 Motoristas — Entregas vs Dificuldades
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart
-                  data={topMotoristasBar}
-                  margin={{ top: 5, right: 20, left: 0, bottom: 60 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="nome"
-                    angle={-35}
-                    textAnchor="end"
-                    interval={0}
-                    tick={{ fontSize: 11 }}
-                  />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="Entregues" fill={COLORS.entregue} radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="Não Entregues" fill={COLORS.dificuldade} radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </section>
-      )}
 
       {/* ── Seção 5: Por Unidade ──────────────────────────────────────────────── */}
       <section>
