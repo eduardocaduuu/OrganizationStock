@@ -623,7 +623,6 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
                     <th className="text-left px-4 py-3 text-gray-600 font-medium">Motorista</th>
                     <th className="text-center px-3 py-3 text-gray-600 font-medium">Total</th>
                     <th className="text-center px-3 py-3 text-gray-600 font-medium">Entregues</th>
-                    <th className="text-center px-3 py-3 text-gray-600 font-medium">Dificuldades</th>
                     <th className="text-center px-3 py-3 text-gray-600 font-medium">Retirados</th>
                     <th className="text-center px-3 py-3 text-gray-600 font-medium">Sucesso</th>
                     <th className="text-center px-3 py-3 text-gray-600 font-medium">Dist. Média</th>
@@ -646,16 +645,6 @@ const RotasDashboard: React.FC<RotasDashboardProps> = ({ items, metrics, motoris
                         </td>
                         <td className="px-3 py-3 text-center text-green-600 font-medium">
                           {m.entregues}
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          <span
-                            className={cn(
-                              'font-medium',
-                              m.dificuldades > 0 ? 'text-red-600' : 'text-gray-400'
-                            )}
-                          >
-                            {m.dificuldades}
-                          </span>
                         </td>
                         <td className="px-3 py-3 text-center text-blue-600">{m.retirados}</td>
                         <td className="px-3 py-3 text-center">
